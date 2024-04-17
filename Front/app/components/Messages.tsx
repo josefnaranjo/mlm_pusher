@@ -23,7 +23,6 @@ function UserMessages({ img, name, messages }: Props) {
         style={{
           maxWidth: "43px",
           maxHeight: "43px",
-          objectFit: "contain",
           borderRadius: "50%",
         }}
         alt="prof-pic"

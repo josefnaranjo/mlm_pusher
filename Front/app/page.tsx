@@ -3,6 +3,7 @@ import MessageLog from "./MessageLog"
 
 import React, { useState } from "react";
 import UserList, {generateUserList} from "../dm-list/dm-list"; // Importing UserList component
+import SideBar from "./components/SideBar/SideBar";
 export default function Home() {
 
  
@@ -13,6 +14,7 @@ export default function Home() {
       <nav className="navbar">Navbar</nav>
       <div className="main-rows">
         <div className="side-channels-container">
+          <SideBar />
           <div className="messages-bar">
               <div className="w-[360px] h-[74px] left-0 top-0 absolute border-opacity-25">
               </div>

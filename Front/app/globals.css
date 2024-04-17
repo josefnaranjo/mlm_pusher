@@ -23,7 +23,7 @@
 }
 
 .side-channels-container {
-  @apply min-w-[72px] border border-sky-500 hidden md:block; 
+  @apply min-w-[72px] border border-sky-500 hidden md:block h-screen; 
 }
 
 .direct-messages-container {

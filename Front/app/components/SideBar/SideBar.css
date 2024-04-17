@@ -2,6 +2,7 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* Following code focuses on the styling for the sidebar */
 .sidebar-icon {
     @apply relative flex items-center justify-center 
     h-12 w-12 mt-2 mb-2 mx-auto  
@@ -15,7 +16,7 @@
 
 .sidebar-tooltip {
     @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
-    text-white bg-gray-900 
+    text-white bg-gray-900 z-10
     text-xs font-bold 
     transition-all duration-75 scale-0 origin-left;
 }
@@ -24,4 +25,23 @@
     @apply bg-green-800
     border border-green-700 rounded-full
     mx-2 h-1;
+}
+
+
+/*  Following code focuses on the styling for the pop up when the user clicks a channel */
+.popup {
+    @apply flex absolute p-2 m-2 min-w-max left-[600px] top-0 mt-12 rounded-md shadow-md origin-left
+    w-auto bg-green-400 text-white z-10;
+}
+
+
+.popup-hr {
+    @apply bg-white
+    border rounded-full
+    mx-1 h-1;
+}
+
+.popup-item{
+    @apply cursor-pointer m-1 p-1 font-bold hover:bg-green-300 hover:rounded-xl text-green-900
+    hover:text-black
 }
