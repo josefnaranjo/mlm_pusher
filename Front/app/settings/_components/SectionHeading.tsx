@@ -10,4 +10,3 @@ export default function SectionHeading({ children }: SectionHeadingProps) {
       {children}
     </h2>
   );
-}
