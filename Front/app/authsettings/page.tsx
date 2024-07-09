@@ -1,4 +1,4 @@
-import { auth, signOut } from "@/auth";
+/* import { auth, signOut } from "@/auth";
 // import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 
@@ -29,3 +29,4 @@ const SettingsPage = async () => {
 };
 
 export default SettingsPage;
+ */
