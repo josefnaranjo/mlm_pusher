@@ -1,67 +1,150 @@
+"use client";
 import Image, { StaticImageData } from "next/image";
 import { BiTrashAlt } from "react-icons/bi";
 import { TbMoodSmile, TbPencil } from "react-icons/tb";
-import React, { useState, FormEvent, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./Messages.css";
 
 interface Message {
+  id: string;
   time: string;
   text: string;
 }
 
 interface Props {
-  img: StaticImageData;
+  img: StaticImageData | string;
   name: string;
+  userID: string;
   messages: Message[];
 }
 
+const ExistingUserMessages = ({ img, name, messages }: Props) => {
 
-const UserMessages: React.FC<Props> = ({ img, name, messages }: Props) => {
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedMessage, setUpdatedMessage] = useState('');
+  const [messageList, setMessageList] = useState<Message[]>(messages);
 
-  function displayUserInfo () {
-    console.log('displayUserInfo clicked');
-  }
-
-  function deleteMessage (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
-    const deleteThisMessage = event.currentTarget.closest('.text-message');
+  const deleteMessage = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>, messageId: string )  => { 
+    const deleteThisMessage = event.currentTarget.closest('.text-message') 
+  
     if (deleteThisMessage) {
-      deleteThisMessage.remove();
+        const messageId = deleteThisMessage.getAttribute('data-id'); 
+        try {
+          const response = await fetch('/api/directMessages', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: messageId }),
+          });
+      
+        if (response.ok) {
+          deleteThisMessage.remove(); 
+          /* event.currentTarget.closest('.text-message')?.remove(); */  // i will find a way to let react handle the dom manipulation 
+          console.log(`Successfully deleted message with ID: ${messageId}`);
+        } else {
+          const errorData = await response.json();
+          console.error(`Failed to delete message with ID: ${messageId}`, errorData);
+        }
+      } catch (error) {
+        console.error(`Can't delete message with ID: ${messageId}`, error);
+      }         
+    } else {
+      console.error('Failed to find the message element for deletion');
+    } 
+  };
+
+  useEffect(() => {
+    setMessageList(messages);
+  }, [messages]);
+
+  const editMessage = async () => {
+    if (!selectedMessageId || !updatedMessage) return;
+
+    try {
+      const response = await fetch('/api/directMessages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedMessageId, text: updatedMessage }),
+      });
+
+      if (response.ok) {
+        setMessageList((prevMessages) => prevMessages.map(message =>
+          message.id === selectedMessageId ? { ...message, text: updatedMessage } : message
+        ));
+        setIsEditing(false);
+        setUpdatedMessage('');
+        setSelectedMessageId(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to edit message:', errorData);
+      }
+    } catch (error) {
+      console.error('Error editing message:', error);
+    }
+  };
+  
+  const enterKeyToSave = (e: React.KeyboardEvent ) => {
+    if (e.key === 'Enter') {
+      editMessage();
     }
   }
 
+  const handleEditClick = (messageId: string, currentText: string) => {
+    setSelectedMessageId(messageId);
+    setUpdatedMessage(currentText);
+    setIsEditing(true);
+  };
 
-return (
-    <div className='message-entry-container' >
-      <div className="userinfo-message-container" >
-        <div className="userinfo-container" onClick={displayUserInfo}>
-          { img != null &&  (<Image src={img}
-                 quality={100}
-                 style={{
-                    maxWidth: "43px",
-                    maxHeight: "43px",
-                    borderRadius: "50%",
-                 }}
-                 alt="prof-pic"
-          /> ) }
-          <div className="username"> {name} </div>
+  return (
+    <div className='message-entry-container'>
+      <div className="userinfo-message-container">
+        <div className="userinfo-container">
+          {img && (
+            <Image
+              src={img}
+              quality={100}
+              style={{
+                maxWidth: "43px",
+                maxHeight: "43px",
+                borderRadius: "50%",
+              }}
+              alt="prof-pic"
+            />
+          )}
+          <div className="username">{name}</div>
           {messages[0] && (
-            <div className="time-entry"> {messages[0].time} </div>
+            <div className="time-entry">{messages[0].time}</div>
           )}
         </div>
         <div className="message-container">
-          {messages.map((message, index) => (
-            <div key={index} className="text-message">
+          {messageList.map((message, index) => (
+            <div key={index} className="text-message" data-id={message.id}>
               {index !== 0 && (
                 <div className="time-entry time-entry-side">{message.time}</div>
               )}
-              {message.text}
-              <div className="edit-box">
-                <button id="edit-pencil"><TbPencil className="edit-icon" /></button>
-                <button id="react-smile"><TbMoodSmile className="edit-icon" /></button>
-                <button id="delete-trash" onClick={deleteMessage}>
-                  <BiTrashAlt className="edit-icon" style={{ color: "red" }} />
-                </button>
-              </div>
+              {isEditing && selectedMessageId === message.id ? (
+                <input
+                  type="text"
+                  value={updatedMessage}
+                  onChange={(e) => setUpdatedMessage(e.target.value)}
+                  onKeyDown={enterKeyToSave}
+                  className="edit-input-form"
+                  autoFocus
+                />
+              ) : (
+                <div>{message.text}</div>
+              )}
+                <div className="edit-box">
+                  <button
+                    id="edit-pencil" onClick={() => handleEditClick(message.id, message.text)}
+                  >
+                    <TbPencil className="edit-icon" />
+                  </button>
+                  <button id="react-smile"><TbMoodSmile className="edit-icon" /></button>
+                  <button id="delete-trash" onClick={(event) => deleteMessage(event, message.id)}>
+                    <BiTrashAlt className="edit-icon" style={{ color: "red" }} />
+                  </button>
+                </div>
             </div>
           ))}
         </div>
@@ -70,4 +153,4 @@ return (
   );
 }
 
-export default UserMessages;
+export default ExistingUserMessages;
