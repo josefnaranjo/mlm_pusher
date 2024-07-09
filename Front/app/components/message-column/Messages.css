@@ -32,7 +32,6 @@
   font-size: 13px;
   position: relative;
   top: 2.5px;
-  
 }
 
 .message-container {
@@ -79,9 +78,13 @@
 .time-entry-side {
   display: none;
   position: absolute;
-  left: -54px;
+  left: -61px;
   top: 50%; /* Move the top edge to the middle of the container */
   transform: translateY(-50%); /* Move the element up by half of its height */
+}
+
+.edit-input-form{
+  min-width: 100%;
 }
 
 .edit-icon {
