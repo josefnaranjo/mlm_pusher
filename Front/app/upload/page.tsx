@@ -1,20 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoPersonCircleOutline } from "react-icons/io5";
 import { CldImage } from "next-cloudinary";
-import styles from "./UploadImage.module.css";
 import axios from "axios";
+import styles from "./UploadImage.module.css";
 
 interface ImageUploadProps {
   userId: string;
-  onClose: () => void; // Add a callback function to close the modal
+  userImage: string | null; // Add userImage prop
+  onClose: () => void;
+  onUpload: (imageUrl: string) => void; // Add onUpload prop
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose }) => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+const ImageUpload: React.FC<ImageUploadProps> = ({ userId, userImage, onClose, onUpload }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(userImage); // Initialize with userImage
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null); // State to handle the message
+
+  useEffect(() => {
+    setPreviewUrl(userImage); // Set the initial preview URL to the user's current image
+  }, [userImage]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -48,7 +54,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose }) => {
 
       // Update the user image in the database
       const updateRes = await axios.post("/api/upload", {
-        userId: "clw9s8n6u0001p42u77kw186u", // Use the provided userId prop
+        userId, // Use the provided userId prop
         imageUrl: file.secure_url,
       });
 
@@ -57,6 +63,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose }) => {
       }
 
       setMessage("Profile image updated"); // Set the success message
+      onUpload(file.secure_url); // Call onUpload with the new image URL
       setTimeout(() => {
         onClose(); // Close the modal after 3 seconds
       }, 3000);
@@ -68,7 +75,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose }) => {
   const deleteImage = async () => {
     try {
       const deleteRes = await axios.post("/api/deleteImage", {
-        userId: "clw9s8n6u0001p42u77kw186u",
+        userId,
       });
 
       if (deleteRes.status !== 200) {
@@ -77,6 +84,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose }) => {
 
       // Reset the preview URL to show the default profile icon
       setPreviewUrl(null);
+      onUpload(""); // Update the parent component with an empty string to reflect the deletion
       console.log("User image deleted successfully");
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -90,14 +98,25 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose }) => {
           <div className="flex relative w-38 h-38 rounded-full overflow-hidden">
             <div className="flex relative w-full h-full">
               {previewUrl ? (
-                <CldImage
-                  loading="lazy"
-                  src={previewUrl}
-                  alt="User Profile"
-                  height={180}
-                  width={180}
-                  className="object-cover"
-                />
+                previewUrl.startsWith("http") ? (
+                  <img
+                    loading="lazy"
+                    src={previewUrl}
+                    alt="User Profile"
+                    height={180}
+                    width={180}
+                    className="object-cover"
+                  />
+                ) : (
+                  <CldImage
+                    loading="lazy"
+                    src={previewUrl}
+                    alt="User Profile"
+                    height={180}
+                    width={180}
+                    className="object-cover"
+                  />
+                )
               ) : (
                 <IoPersonCircleOutline
                   className="default-picture"

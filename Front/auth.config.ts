@@ -4,8 +4,6 @@ import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { getUserByEmail } from "@/data/user";
 import { LoginSchema } from "./schemas";
-import bcrypt from "bcryptjs";
-import Google from "next-auth/providers/google";
 
 const authConfig: NextAuthConfig = {
   providers: [
