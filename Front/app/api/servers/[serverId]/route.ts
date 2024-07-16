@@ -29,8 +29,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Server not found' }, { status: 404 });
     }
 
-    console.log('Server fetched successfully:', server);
-    return NextResponse.json(server, { status: 200 });
+    // finds member of the server
+    const member = await prisma.member.findFirst({
+      where: {
+        serverId,
+        userId: user.id,
+      },
+    });
+
+    if (!member) {
+      console.error('User is not a member of this server');
+      return NextResponse.json({ error: 'You are not a member of this server' }, { status: 405 });
+    }
+
+    // gives their role as a response
+    const response = {
+      server,
+      role: member.role,
+    };
+
+    console.log('Server and role fetched successfully:', response);
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error('Error fetching server:', error);
     return NextResponse.json({ error: 'Failed to fetch server' }, { status: 500 });

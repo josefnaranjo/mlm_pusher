@@ -28,6 +28,7 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
   const [popupVisible, setPopupVisible] = useState<boolean>(false); // pop up visibility
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 }); // pop up position
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null); // selects a channel
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   // fetches server details so we set the name of the server
   useEffect(() => {
@@ -37,9 +38,17 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
         if (!response.ok) {
           throw new Error(`Failed to fetch server: ${response.statusText}`);
         }
-        const server: Server = await response.json();
-        setServerName(server.name);
+        const data = await response.json();
+        const { server, role } = data;
+
+        if (server && role) {
+          setServerName(server.name);
+          setIsAdmin(role === "ADMIN" || role === "MODERATOR");
+        } else {
+          throw new Error("Invalid response structure");
+        }
       } catch (error) {
+        console.error("Error loading server:", error);
         setServerName("Error loading server");
       }
     };

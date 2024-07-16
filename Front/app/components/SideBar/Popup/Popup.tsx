@@ -1,4 +1,4 @@
-import React, { MouseEvent, useRef, useEffect, RefObject } from "react";
+import React, { MouseEvent, useRef, useEffect, RefObject, useState } from "react";
 import Divider from "../Divider/Divider";
 import "./Popup.css";
 
@@ -33,6 +33,24 @@ const Popup = ({
   ref, // Added ref to the destructured props
 }: PopupProps) => {
   const popupRef = useRef<HTMLDivElement>(null);
+  const [isAdmin, setIsAdmin] = useState<Boolean>(false);
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const response = await fetch(`/api/servers/${server}`)
+        if (!response.ok) {
+          throw new Error (`Failed to fetch server role: ${response.statusText}`);
+        }
+        const data = await response.json();
+        const { role } = data
+        setIsAdmin(role === "ADMIN" || role === "MODERATOR");
+      } catch (error) {
+        console.error("Failed to fetch user role: ", error);
+      };
+    };
+    checkUserRole();
+  }, [server])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
