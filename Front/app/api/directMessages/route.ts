@@ -8,7 +8,9 @@ export async function GET() {
   if (!session) return NextResponse.json('Unauthorized', { status: 401 });
 
   try {
-    const messages = await prisma.message.findMany();
+    const messages = await prisma.message.findMany({
+      orderBy: { createdAt: 'asc' },
+    });
     return NextResponse.json(messages, { status: 200 });
   } catch (error) {
     console.error("Error fetching messages:", error)
@@ -21,21 +23,24 @@ export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json('Unauthorized', { status: 401 });
 
-  let debugVar = "";
-
   try {
-    let { content, userId, channelId} = await request.json(); // Ensure content is included
+    let { content, userId, channelId} = await request.json();
     channelId = "07942561-fc74-4612-9324-34ae03ae49e6";
     const createdAt = new Date();
 
-    if (!content || !userId) {
-      return NextResponse.json({ error: 'Content and userId are required' }, { status: 404 });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const channel = await prisma.channel.findUnique({ where: { id: channelId } })
+
+    if (!user || !userId) {
+      return NextResponse.json({ error: 'User or user_ID not found en ROUTE' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!channel || !channelId) {
+      return NextResponse.json({ error: 'Channel or channel_ID not found en ROUTE' }, { status: 400 });
+    }
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found en ROUTE' }, { status: 400 });
+    if (!content) {
+      return NextResponse.json({ error: 'Content not found en ROUTE' }, { status: 400 });
     }
 
     const newMessage = await prisma.message.create({
@@ -48,25 +53,62 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    debugVar += "pls work triple"; 
 
     return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {
     console.error('Error creating message:', error);
-    return NextResponse.json({ error: 'Failed to create message in the API route.tsx' + debugVar, bigError: error}, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create message in the API route.tsx'}, { status: 500 });
   }
 }
 
 
+export async function PATCH (request: NextRequest) {
+  const session = await auth();
+  if (!session) return NextResponse.json('Unauthorized', { status: 401 });
+ 
+  try {
+    const { id, text } = await request.json();
+
+    if (!id ) {
+      console.log('Invalid input:', { id });
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    if (!text) {
+      console.log('Invalid input:', { text });
+      return NextResponse.json({ error: 'Text is required' }, { status: 400 });
+    } 
+
+    console.log(`Updating message with ID: ${id}`);
+    
+    await prisma.message.update({
+        where: { id },
+        data: { content: text,
+                updatedAt: new Date()
+         },
+    });
+
+    console.log(`Successfully updated message with ID: ${id}`); 
+    return NextResponse.json({ message: 'Updated message successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Error updating message:', error);
+    return NextResponse.json({ error: 'Failed to update message en ROUTE'}, { status: 500 });
+  }
+}
+
 export async function PUT(request: NextRequest) {
+  if (request.method !== 'PUT') {
+    return NextResponse.json({ error: 'Method not allowed'}, { status: 405 });
+  }
+
   const session = await auth();
   if (!session) return NextResponse.json('Unauthorized', { status: 401 });
 
   try {
-    const { id, content } = await request.json();
+    const { id, text } = await request.json();
     const editedMessage = await prisma.message.update({
       where: { id },
-      data: { content },
+      data: { content : text },
     });
     return NextResponse.json(editedMessage, { status: 200 });
   } catch (error) {
@@ -95,26 +137,5 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("Error deleting message:", error);
     return NextResponse.json({ error: 'Failed to delete message' }, { status: 500 });
-  }
-}
-
-
-export async function PATCH (request: NextRequest) {
-  const session = await auth();
-
-  if (!session) return NextResponse.json('Unauthorized', { status: 401 });
-
-  try {
-    const { id, content } = await request.json();
-    console.log(`Updating message with ID: ${id}`); // Debug line
-    
-    const updatedMessage = await prisma.message.update({
-        where: { id },
-        data: { content },
-    });
-    return NextResponse.json({ message: 'Updated message successfully' }, { status: 200 });
-  } catch (error) {
-    console.error('Error updating message:', error);
-    return NextResponse.json({ error: 'Failed to update message en ROUTE' }, { status: 500 });
   }
 }

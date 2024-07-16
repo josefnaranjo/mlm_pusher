@@ -7,7 +7,7 @@ export const currentUser = async () => {
 
   console.log(session);
 
-  if (!session || !session.user?.id) {
+  if (!session || !session.user?.id ) {
     console.error("No session or session.user.id found");
     return null;
   }
