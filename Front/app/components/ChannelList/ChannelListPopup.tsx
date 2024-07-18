@@ -1,3 +1,4 @@
+//Front\app\components\ChannelList\ChannelListPopup.tsx
 import React, { useEffect, useRef, MouseEvent } from "react";
 import "./ChannelListPopup.css";
 
@@ -5,6 +6,7 @@ interface PopupProps {
   position: { x: number; y: number };
   onClose: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   ChannelType: "TEXT" | "VOICE";
 }
 
@@ -12,6 +14,7 @@ const ChannelListPopup: React.FC<PopupProps> = ({
   position,
   onClose,
   onDelete,
+  onEdit,
   ChannelType,
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
@@ -19,7 +22,10 @@ const ChannelListPopup: React.FC<PopupProps> = ({
   // re-used some code from the sidebar pop up here
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(event.target as Node)
+      ) {
         onClose();
       }
     };
@@ -36,7 +42,7 @@ const ChannelListPopup: React.FC<PopupProps> = ({
     };
   }, [onClose]);
 
-  // Offset constants so its below the channel 
+  // Offset constants so its below the channel
   const offsetX = -40;
   const offsetY = 30;
 
@@ -51,8 +57,17 @@ const ChannelListPopup: React.FC<PopupProps> = ({
       }}
       onClick={onClose}
     >
-      <ul className="popup-list" onClick={(e) => e.stopPropagation()}>
-        <li className="popup-item1" onClick={onDelete}>
+      <ul className="popup-menu1" onClick={(e) => e.stopPropagation()}>
+        <li
+          className="popup-item1 text-black hover:bg-zinc-200"
+          onClick={onEdit}
+        >
+          Edit Name
+        </li>
+        <li
+          className="popup-item1 text-rose-500 hover:bg-rose-200"
+          onClick={onDelete}
+        >
           Delete
         </li>
       </ul>

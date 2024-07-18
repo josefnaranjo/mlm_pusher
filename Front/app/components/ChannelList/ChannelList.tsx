@@ -1,4 +1,5 @@
-import { MouseEvent, useEffect, useState } from "react";
+//Front\app\components\ChannelList\ChannelList.tsx
+import { MouseEvent, useEffect, useRef, useState } from "react";
 import { BiText } from "react-icons/bi";
 import { FaPlus } from "react-icons/fa";
 import { MdSpatialAudio } from "react-icons/md";
@@ -22,11 +23,18 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
   const [serverName, setServerName] = useState<string>("Loading..."); // when server is loading
   const [loading, setLoading] = useState<boolean>(true); // for loading div
   const [newChannelName, setNewChannelName] = useState<string>("");
-  const [newChannelType, setNewChannelType] = useState<"TEXT" | "VOICE">("TEXT");
-  const [showTextChannelForm, setShowTextChannelForm] = useState<boolean>(false); // text channel creation
-  const [showVoiceChannelForm, setShowVoiceChannelForm] = useState<boolean>(false); // voice channel creation
+  const [newChannelType, setNewChannelType] = useState<"TEXT" | "VOICE">(
+    "TEXT"
+  );
+  const [showTextChannelForm, setShowTextChannelForm] =
+    useState<boolean>(false); // text channel creation
+  const [showVoiceChannelForm, setShowVoiceChannelForm] =
+    useState<boolean>(false); // voice channel creation
   const [popupVisible, setPopupVisible] = useState<boolean>(false); // pop up visibility
-  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 }); // pop up position
+  const [popupPosition, setPopupPosition] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  }); // pop up position
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null); // selects a channel
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
@@ -101,8 +109,46 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
       setNewChannelName("");
       setShowTextChannelForm(false);
       setShowVoiceChannelForm(false);
+      setSelectedChannel(null); // Clear selectedChannel after creating
     } catch (error) {
       console.error("Error creating channel:", error);
+    }
+  };
+
+  const handleEditChannelName = async () => {
+    if (!selectedChannel || !newChannelName) return;
+
+    try {
+      const response = await fetch(`/api/channels/`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newChannelName,
+          id: selectedChannel.id,
+          type: selectedChannel.type,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update channel: ${response.statusText}`);
+      }
+
+      // Update the channel name in the state
+      setChannels((prevChannels) =>
+        prevChannels.map((channel) =>
+          channel.id === selectedChannel.id
+            ? { ...channel, name: newChannelName }
+            : channel
+        )
+      );
+
+      setNewChannelName("");
+      setShowTextChannelForm(false);
+      setShowVoiceChannelForm(false);
+    } catch (error) {
+      console.error("Error updating channel:", error);
     }
   };
 
@@ -134,7 +180,10 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
   };
 
   // right click for the pop up, sets the channel and also the position
-  const handleChannelRightClick = (event: MouseEvent<HTMLDivElement>, channel: Channel) => {
+  const handleChannelRightClick = (
+    event: MouseEvent<HTMLDivElement>,
+    channel: Channel
+  ) => {
     event.preventDefault();
     if (event) {
       const { clientX, clientY } = event;
@@ -146,9 +195,12 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
 
   // similar to how server selection is handled
   const handleChannelClick = async (channelId: string) => {
-    const selectedChannel = channels.find((channel) => channel.id === channelId);
+    setNewChannelName(""); // Reset newChannelName
+    const selectedChannel = channels.find(
+      (channel) => channel.id === channelId
+    );
     setSelectedChannel(selectedChannel || null);
-    console.log('Channel selected:', selectedChannel);
+    console.log("Channel selected:", selectedChannel);
 
     try {
       const response = await fetch(`/api/channels/${channelId}`);
@@ -156,7 +208,7 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
         throw new Error(`Failed to fetch channel: ${response.statusText}`);
       }
       const channel = await response.json();
-      console.log('Channel details:', channel);
+      console.log("Channel details:", channel);
     } catch (error) {
       console.error("Error fetching channel:", error);
     }
@@ -173,15 +225,19 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
   const voiceChannels = channels.filter((channel) => channel.type === "VOICE");
 
   return (
-    <div className="channel-list-container h-auto"> {/* main container of everything, h is auto so the display isn't broken */}
-      <div className="server-bar shadow-sm py-1"> {/* container of the server name */}
+    <div className="channel-list-container h-auto">
+      {" "}
+      {/* main container of everything, h is auto so the display isn't broken */}
+      <div className="server-bar shadow-sm py-1">
+        {" "}
+        {/* container of the server name */}
         <div className="server-name">{serverName}</div>
         <button className="flex justify-center">
-          <RiArrowDropDownLine className="text-4xl" /> {/* potentially make it so theres another invite pop up here, like in discord */}
+          <RiArrowDropDownLine className="text-4xl" />{" "}
+          {/* potentially make it so theres another invite pop up here, like in discord */}
         </button>
       </div>
-
-      <div className="channel-types bg-white mt-4 h-full"> {/* channels main container */}
+      <div className="channel-types bg-white mt-4 h-full">
         <div className="text-channels">
           <div className="channel-type">
             Text Channels
@@ -191,6 +247,8 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
                 setNewChannelType("TEXT");
                 setShowTextChannelForm(!showTextChannelForm);
                 setShowVoiceChannelForm(false);
+                setNewChannelName(""); // Reset newChannelName
+                setSelectedChannel(null); // Clear selectedChannel
               }}
             >
               <FaPlus className="text-lg mr-4" />
@@ -199,7 +257,9 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
           {textChannels.map((channel) => (
             <div
               key={channel.id}
-              className={`channel-item ${selectedChannel?.id === channel.id ? 'selected' : ''}`}
+              className={`channel-item ${
+                selectedChannel?.id === channel.id ? "selected" : ""
+              }`}
               onClick={() => handleChannelClick(channel.id)}
               onContextMenu={(event) => handleChannelRightClick(event, channel)}
             >
@@ -217,8 +277,23 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
                   onChange={(e) => setNewChannelName(e.target.value)}
                   className="input"
                 />
-                <button onClick={handleCreateChannel} className="btn-create">
-                  Create Channel
+                <button
+                  onClick={() => {
+                    if (
+                      selectedChannel &&
+                      (showTextChannelForm || showVoiceChannelForm)
+                    ) {
+                      handleEditChannelName();
+                    } else {
+                      handleCreateChannel();
+                    }
+                  }}
+                  className="btn-create"
+                >
+                  {selectedChannel &&
+                  (showTextChannelForm || showVoiceChannelForm)
+                    ? "Edit Channel Name"
+                    : "Create Channel"}
                 </button>
               </div>
             </div>
@@ -234,6 +309,8 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
                 setNewChannelType("VOICE");
                 setShowVoiceChannelForm(!showVoiceChannelForm);
                 setShowTextChannelForm(false);
+                setNewChannelName(""); // Reset newChannelName
+                setSelectedChannel(null); // Clear selectedChannel
               }}
             >
               <FaPlus className="text-lg mr-4" />
@@ -242,7 +319,9 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
           {voiceChannels.map((channel) => (
             <div
               key={channel.id}
-              className={`channel-item ${selectedChannel?.id === channel.id ? 'selected' : ''}`}
+              className={`channel-item ${
+                selectedChannel?.id === channel.id ? "selected" : ""
+              }`}
               onClick={() => handleChannelClick(channel.id)}
               onContextMenu={(event) => handleChannelRightClick(event, channel)}
             >
@@ -251,30 +330,62 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
             </div>
           ))}
           {showVoiceChannelForm && (
-            <div className="create-channel-container flex justify-between mx-1 p-2 shadow-md w-auto">
+            <div className="create-channel-container flex justify-between mx-1 p-2 shadow-md">
               <div className="create-channel-form">
                 <input
-                  type="text"
-                  placeholder="New Channel Name"
+                  type="voice"
+                  placeholder="New Voice Name"
                   value={newChannelName}
                   onChange={(e) => setNewChannelName(e.target.value)}
                   className="input"
                 />
-                <button onClick={handleCreateChannel} className="btn-create">
-                  Create Channel
+                <button
+                  onClick={() => {
+                    if (
+                      selectedChannel &&
+                      (showTextChannelForm || showVoiceChannelForm)
+                    ) {
+                      handleEditChannelName();
+                    } else {
+                      handleCreateChannel();
+                    }
+                  }}
+                  className="btn-create"
+                >
+                  {selectedChannel &&
+                  (showTextChannelForm || showVoiceChannelForm)
+                    ? "Edit Server Name"
+                    : "Create Server"}
                 </button>
               </div>
             </div>
           )}
         </div>
       </div>
-
       {popupVisible && (
         <ChannelListPopup
           ChannelType={selectedChannel?.type!}
           position={popupPosition}
           onClose={() => setPopupVisible(false)}
           onDelete={handleDeleteChannel}
+          onEdit={() => {
+            setPopupVisible(false);
+
+            if (selectedChannel) {
+              setNewChannelName(selectedChannel.name);
+              if (selectedChannel.type === "TEXT") {
+                setShowTextChannelForm(true);
+                setShowVoiceChannelForm(false);
+              } else {
+                setShowVoiceChannelForm(true);
+                setShowTextChannelForm(false);
+              }
+            } else {
+              setNewChannelName("");
+              setShowTextChannelForm(false);
+              setShowVoiceChannelForm(false);
+            }
+          }}
         />
       )}
     </div>

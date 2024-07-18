@@ -1,9 +1,9 @@
-/* Popup.css */
+/* Front\app\components\ChannelList\ChannelListPopup.css */
 .popup-menu1 {
   @apply bg-white z-50 rounded-md border-none shadow-md min-w-max;
 }
 
 .popup-item1 {
-  @apply text-lg font-semibold cursor-pointer px-3 py-1 rounded-md text-rose-500 hover:bg-rose-200 transition-all duration-300;
+  @apply text-base font-semibold cursor-pointer px-3 py-1 rounded-md transition-all duration-300;
+  /* text-rose-500 hover:bg-rose-200 */
 }
-
