@@ -75,6 +75,9 @@ const AddPopup = ({ onClose, position, onServerAdded  }: AddPopupProps) => {
             setInviteCode('');
             onServerAdded(joinedServer); // Call the callback with the joined server
             onClose();
+
+            // refresh the page so it works with no errors
+            window.location.reload();
         } catch (error) {
             console.error('Failed to join server:', error);
             setMessage('Failed to join server');

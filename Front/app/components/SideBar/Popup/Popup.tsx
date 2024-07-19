@@ -3,7 +3,9 @@ import Divider from "../Divider/Divider";
 import "./Popup.css";
 
 interface PopupProps {
-  server: string;
+  serverId: string; // Changed from server to serverId
+  serverName: string; // Add serverName if you still need to display the name
+  onDelete: () => void;
   onClose: () => void;
   onLeave: () => void;
   onEdit: () => void;
@@ -20,7 +22,9 @@ const offsetX = 40;
 const offsetY = -60;
 
 const Popup = ({
-  server,
+  serverId, // Changed from server to serverId
+  serverName, // Added serverName for displaying the name
+  onDelete,
   onClose,
   onLeave,
   onEdit,
@@ -38,7 +42,7 @@ const Popup = ({
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        const response = await fetch(`/api/servers/${server}`)
+        const response = await fetch(`/api/servers/${serverId}`)
         if (!response.ok) {
           throw new Error (`Failed to fetch server role: ${response.statusText}`);
         }
@@ -50,7 +54,7 @@ const Popup = ({
       };
     };
     checkUserRole();
-  }, [server])
+  }, [serverId])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -109,19 +113,27 @@ const Popup = ({
           </li>
         ) : (
           <li className="popup-item" onClick={onEdit}>
-            Edit Name of {server}
+            Edit Name of {serverName}
           </li>
         )}
         <Divider />
         <li className="popup-item" onClick={handleCopyInviteCode}> {/* onClick should trigger the invite code retrieval */}
-          Invite Friend to {server}
+          Invite Friend to {serverName}
         </li>
         <Divider />
-        <li className="popup-item">Edit Member of {server}</li>
+        <li className="popup-item">Edit Member of {serverName}</li>
         <Divider />
         <button className="popup-item leave" onClick={onLeave}>
-          Leave {server}
+          Leave {serverName}
         </button>
+        {isAdmin && (
+          <>
+            <Divider />
+            <button className="popup-item delete" onClick={onDelete}>
+              Delete {serverName}
+            </button>
+          </>
+        )}
       </ul>
     </div>
   );

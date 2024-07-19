@@ -69,6 +69,8 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
     if (text && event) {
       const selectedServer = servers.find((server) => server.id === serverId);
       setSelectedServer(selectedServer || null);
+      // onSelectServer(serverId) do we want the right click to also select the server?
+      // if so, remove undefined from serverId above
 
       if (serverId) {
         try {
@@ -181,6 +183,7 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
         );
         setPopupVisible(false);
         setSelectedServer(null);
+        onSelectServer(""); // this makes it so that the Direct Messages are shown IMMEDIATELY and channel list disappears
       } else {
         const errorData = await response.json();
         console.error("Failed to leave server:", errorData);
@@ -219,6 +222,36 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
       console.error("Error updating server name:", error);
     }
   };
+
+  const handleDeleteServer = async () => {
+    if (!selectedServer?.id) return;
+  
+    try {
+      const response = await fetch("/api/servers", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ serverId: selectedServer.id }),
+      });
+  
+      if (response.ok) {
+        console.log("Server deleted successfully");
+        setServers((prevServers) =>
+          prevServers.filter((server) => server.id !== selectedServer.id)
+        );
+        setPopupVisible(false);
+        setSelectedServer(null);
+        onSelectServer(""); // this makes it so that the Direct Messages are shown IMMEDIATELY and channel list disappears
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to delete server:", errorData);
+      }
+    } catch (error) {
+      console.error("Error deleting server:", error);
+    }
+  };
+  
 
   // Use the custom hook for outside click detection
   const popupRef = useOutsideClick(() => setPopupVisible(false));
@@ -278,7 +311,10 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
       />
       {popupVisible && (
         <Popup
-          server={selectedServer?.name || ""}
+          // changed from just server to serverId and serverName. Makes handling things easier
+          serverId={selectedServer?.id || ""} // Pass the server ID
+          serverName={selectedServer?.name || ""} // Pass the server name
+          onDelete={handleDeleteServer}
           onClose={handleClosePopup}
           onLeave={handleLeaveServer}
           onEdit={() => setIsEditing(true)}
