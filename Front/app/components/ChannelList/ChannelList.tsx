@@ -6,16 +6,12 @@ import { MdSpatialAudio } from "react-icons/md";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import "./ChannelList.css";
 import ChannelListPopup from "./ChannelListPopup";
+// import { useRouter } from "next/navigation";
 
 interface Channel {
   id: string;
   name: string;
   type: "TEXT" | "VOICE";
-}
-
-interface Server {
-  id: string;
-  name: string;
 }
 
 const ChannelList = ({ serverId }: { serverId: string }) => {
@@ -37,6 +33,7 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
   }); // pop up position
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null); // selects a channel
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  // const router = useRouter();
 
   // fetches server details so we set the name of the server
   useEffect(() => {
@@ -88,22 +85,21 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
       return;
     }
 
-    try {
-      const response = await fetch("/api/channels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newChannelName,
-          type: newChannelType,
-          serverId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create channel: ${response.statusText}`);
-      }
-
-      // new channel is created, and the ui is updated. the form is also reset
+    if (isAdmin) {
+      try {
+        const response = await fetch("/api/channels", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: newChannelName,
+            type: newChannelType,
+            serverId,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to create channel: ${response.statusText}`);
+        }
+        // new channel is created, and the ui is updated. the form is also reset
       const newChannel = await response.json();
       setChannels((prevChannels) => [...prevChannels, newChannel]);
       setNewChannelName("");
@@ -113,69 +109,84 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
     } catch (error) {
       console.error("Error creating channel:", error);
     }
+    } else{
+      alert("You must be an admin to create channels");
+      setShowTextChannelForm(false);
+      setShowVoiceChannelForm(false);
+    };
   };
 
   const handleEditChannelName = async () => {
     if (!selectedChannel || !newChannelName) return;
 
-    try {
-      const response = await fetch(`/api/channels/`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: newChannelName,
-          id: selectedChannel.id,
-          type: selectedChannel.type,
-        }),
-      });
+    if (isAdmin){
+      try {
+        const response = await fetch(`/api/channels/`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newChannelName,
+            id: selectedChannel.id,
+            type: selectedChannel.type,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Failed to update channel: ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`Failed to update channel: ${response.statusText}`);
+        }
+
+        // Update the channel name in the state
+        setChannels((prevChannels) =>
+          prevChannels.map((channel) =>
+            channel.id === selectedChannel.id
+              ? { ...channel, name: newChannelName }
+              : channel
+          )
+        );
+
+        setNewChannelName("");
+        setShowTextChannelForm(false);
+        setShowVoiceChannelForm(false);
+      } catch (error) {
+        console.error("Error updating channel:", error);
       }
-
-      // Update the channel name in the state
-      setChannels((prevChannels) =>
-        prevChannels.map((channel) =>
-          channel.id === selectedChannel.id
-            ? { ...channel, name: newChannelName }
-            : channel
-        )
-      );
-
-      setNewChannelName("");
+    } else {
+      alert("You must be an admin to edit channels");
       setShowTextChannelForm(false);
       setShowVoiceChannelForm(false);
-    } catch (error) {
-      console.error("Error updating channel:", error);
     }
   };
 
   const handleDeleteChannel = async () => {
     if (!selectedChannel) return;
 
-    try {
-      const response = await fetch(`/api/channels`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ channelId: selectedChannel.id }),
-      });
+    if (isAdmin) {
+      try {
+        const response = await fetch(`/api/channels`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ channelId: selectedChannel.id }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete channel: ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`Failed to delete channel: ${response.statusText}`);
+        }
+
+        // once channel is deleted, the UI is updated, pop up closed, and channel state is null
+        setChannels((prevChannels) =>
+          prevChannels.filter((channel) => channel.id !== selectedChannel.id)
+        );
+        setPopupVisible(false);
+        setSelectedChannel(null);
+      } catch (error) {
+        console.error("Error deleting channel:", error);
       }
-
-      // once channel is deleted, the UI is updated, pop up closed, and channel state is null
-      setChannels((prevChannels) =>
-        prevChannels.filter((channel) => channel.id !== selectedChannel.id)
-      );
-      setPopupVisible(false);
-      setSelectedChannel(null);
-    } catch (error) {
-      console.error("Error deleting channel:", error);
+    } else {
+      alert("You must be an admin to delete channels.")
     }
   };
 
@@ -200,6 +211,7 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
       (channel) => channel.id === channelId
     );
     setSelectedChannel(selectedChannel || null);
+    // router.push(`/channels/${channelId}`);
     console.log("Channel selected:", selectedChannel);
 
     try {
