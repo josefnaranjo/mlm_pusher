@@ -25,4 +25,4 @@ export async function POST(req: NextRequest) {
     console.error('Error deleting user image:', error);  // Log error details
     return NextResponse.json({ message: 'Error deleting user image' }, { status: 500 });
   }
-}
+};

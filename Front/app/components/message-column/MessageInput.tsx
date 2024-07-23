@@ -9,7 +9,7 @@ interface Props {
 }
 
 
-const MessageInput: React.FC<Props> = ({ onSendMessage }) => {
+const MessageInput= ({ onSendMessage } : Props) => {
   const [typedMessage, setTypedMessage] = useState<string>("");
 
   const handleSubmit = ( e: FormEvent<HTMLFormElement> ) => {
@@ -17,14 +17,14 @@ const MessageInput: React.FC<Props> = ({ onSendMessage }) => {
     if (typedMessage.trim() !== "") {
       onSendMessage(typedMessage);
       setTypedMessage("");
-      console.log("Message sent", typedMessage);
+      console.log("the Message: ", typedMessage);
     }
   }
 
-  useEffect(() => {
+   useEffect(() => {
     const keyDownHandler = (e: any )  => {
       if (e && e.key) {
-        console.log("user pressed" + e.key);
+        console.log("user pressed " + e.key);
       }
 
       if (e.key === 'Enter') {
@@ -74,7 +74,5 @@ const MessageInput: React.FC<Props> = ({ onSendMessage }) => {
 };
 
 export default MessageInput;
-
-
 
 

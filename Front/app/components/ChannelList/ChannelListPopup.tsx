@@ -1,4 +1,3 @@
-//Front\app\components\ChannelList\ChannelListPopup.tsx
 import React, { useEffect, useRef, MouseEvent } from "react";
 import "./ChannelListPopup.css";
 

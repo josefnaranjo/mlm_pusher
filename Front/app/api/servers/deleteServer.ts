@@ -48,4 +48,4 @@ export async function DELETE(req: NextRequest) {
     console.error('Error deleting server:', error);
     return NextResponse.json({ error: 'Failed to delete server' }, { status: 500 });
   }
-}
+};

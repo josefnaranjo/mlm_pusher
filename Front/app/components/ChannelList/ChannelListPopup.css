@@ -1,4 +1,5 @@
-/* Front\app\components\ChannelList\ChannelListPopup.css */
+/* Popup.css */
+
 .popup-menu1 {
   @apply bg-white z-50 rounded-md border-none shadow-md min-w-max;
 }

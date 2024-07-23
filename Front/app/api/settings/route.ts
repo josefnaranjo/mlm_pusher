@@ -165,9 +165,3 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to update user data' }, { status: 500 });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};

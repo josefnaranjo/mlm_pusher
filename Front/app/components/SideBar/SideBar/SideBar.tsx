@@ -39,7 +39,6 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
   const [newServerName, setNewServerName] = useState("");
   const [inviteCode, setInviteCode] = useState(""); // New state for invite code, needs to get and set
   const [loading, setLoading] = useState(true);
-
   
 
   // Gets servers for current user
@@ -104,7 +103,7 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
     const selectedServer = servers.find((server) => server.id === serverId);
     setSelectedServer(selectedServer || null);
     onSelectServer(serverId);
-    
+
     if (popupVisible) {
       setPopupVisible(false);
     }

@@ -1,4 +1,3 @@
-//Front\app\components\ChannelList\ChannelList.tsx
 import { MouseEvent, useEffect, useRef, useState } from "react";
 import { BiText } from "react-icons/bi";
 import { FaPlus } from "react-icons/fa";
@@ -6,7 +5,6 @@ import { MdSpatialAudio } from "react-icons/md";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import "./ChannelList.css";
 import ChannelListPopup from "./ChannelListPopup";
-// import { useRouter } from "next/navigation";
 
 interface Channel {
   id: string;
@@ -211,8 +209,8 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
       (channel) => channel.id === channelId
     );
     setSelectedChannel(selectedChannel || null);
-    // router.push(`/channels/${channelId}`);
     console.log("Channel selected:", selectedChannel);
+
 
     try {
       const response = await fetch(`/api/channels/${channelId}`);
@@ -220,7 +218,7 @@ const ChannelList = ({ serverId }: { serverId: string }) => {
         throw new Error(`Failed to fetch channel: ${response.statusText}`);
       }
       const channel = await response.json();
-      console.log("Channel details:", channel);
+      console.log('Channel details:', channel);
     } catch (error) {
       console.error("Error fetching channel:", error);
     }

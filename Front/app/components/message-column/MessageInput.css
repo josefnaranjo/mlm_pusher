@@ -16,10 +16,16 @@
 }
 
 textarea {
-  resize: none;
+  resize: none;  
   width: 100%;
   margin-left: 1rem;
   outline: none;
+}
+
+#typed-message{
+  outline: none;
+  resize: none;  
+  padding-left: 1rem;
 }
 
 .input-icons-container {

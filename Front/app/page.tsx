@@ -26,7 +26,7 @@ export default function Home() {
           )}
         </div>
         <div className="message-log-container">
-          <MessageLog />
+          <MessageLog channelName={selectedChannelName} channelId={selectedChannelId} />
         </div>
       </div>
     </div>

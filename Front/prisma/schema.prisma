@@ -141,8 +141,6 @@ model Settings {
   country     String
   language    String
   about       String
-
-  @@index([userId])
 }
 
 model Friend {
