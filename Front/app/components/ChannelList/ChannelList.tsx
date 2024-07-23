@@ -10,6 +10,7 @@ interface Channel {
   id: string;
   name: string;
   type: "TEXT" | "VOICE";
+  onChannelSelect: (channelId: string, channelName: string) => void;
 }
 
 const ChannelList = ({ serverId }: { serverId: string }) => {
