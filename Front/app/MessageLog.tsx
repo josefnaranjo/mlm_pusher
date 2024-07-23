@@ -9,6 +9,7 @@ import axios from "axios";
 import { StaticImageData } from "next/image";
 import { currentUser } from "@/lib/current-user";
 
+
 interface Message {
   time: string;
   text: string;
@@ -22,30 +23,40 @@ interface NEWUserMessage {
   messages: Message[];
 }
 
-const MessageLog: React.FC = () => {
+interface MessageLogProps {
+  channelName: string;
+  channelId: string;
+}
+
+const MessageLog = ({ channelName, channelId } : MessageLogProps ) => { 
   const [userMessages, setUserMessages] = useState<NEWUserMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [selectedChannelName, setSelectedChannelName] = useState<string>(channelName); // when server is loading;
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null); // when server is loading;
+
+  const channelIDTemplate = `${channelId}`
+  const channelNameTemplate = `${channelName}`
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const user = await currentUser();
-      if (user) {
-        setCurrentUserId(user.id);
-        setUserMessages([
-          {
-            name: "Orchid",
-            img: avatar,
-            userID: user.id,
-            messages: [],
-          },
-        ]);
-      } else {
-        console.error("User is not authenticated");
+    const fetchChannelName = async() => {
+      try {
+        const response = await fetch(`/api/channels/${channelId}`);
+        if (response.ok) {
+          const channel = await response.json();
+          setSelectedChannelName(channel.name);
+          setSelectedChannelId(channelId); 
+          console.log(`you are now in Channel: "${channelNameTemplate}", ID: ${channelIDTemplate}`);
+        } else {
+          throw new Error("Failed to load channel name");
+        }
+      } catch (error) {
+        console.error("Error loading channel:", error);
+        setSelectedChannelName("Error loading channel");
       }
     };
 
-    fetchCurrentUser();
-  }, []);
+    fetchChannelName();
+  }, [channelId]);
 
   const createNewMessage = async (content: string, channelId: number, userId: string): Promise<string | null> => {
     const user = await currentUser();
@@ -77,17 +88,45 @@ const MessageLog: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const user = await currentUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        setUserMessages([
+          {
+            name: "Orchid",
+            img: avatar,
+            userID: user.id,
+            messages: [],
+          },
+        ]);
+      } else {
+        console.error("User is not authenticated");
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
   const sendMessage = async (message: string): Promise<void> => {
     try {
-      const channelId = 1; // Replace with the actual channel ID
-      const userId = currentUserId; // Use the dynamically fetched user ID
+      if (!selectedChannelId) {
+        console.error("Channel ID is not set");
+        return;
+      }  else {
+        console.log(`Message sent in "${channelName}", ID: ${channelIDTemplate}`)
+      }
+
+      const userId = currentUserId; // Using the dynamically fetched user ID
+      const channelId = parseInt( selectedChannelId );
 
       // Send the message to the server
       const messageId = await createNewMessage(message, channelId, userId);
 
       if (messageId != null) {
         const copyNewUserMessages = [...userMessages];
-        if (copyNewUserMessages[copyNewUserMessages.length - 1].userID === userId) {
+        if (copyNewUserMessages.length > 0 && copyNewUserMessages[copyNewUserMessages.length - 1].userID === userId) {
           copyNewUserMessages[copyNewUserMessages.length - 1].messages.push({
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             text: message,
@@ -165,19 +204,21 @@ const MessageLog: React.FC = () => {
     const fetchMessages = async () => {
       try {
         const response = await axios.get('/api/directMessages');
-        console.log('here are the fetched messages:', response.data);
+        console.log(`Here are the fetched messages for "${channelNameTemplate}", ID: ${channelIDTemplate}`, response.data);
         setUserMessages(convertToUserMessages(response.data));
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
     };
 
-    fetchMessages();
-  }, []); // Ensure dependency array is properly set
-    
+    if (selectedChannelId) {
+      fetchMessages();
+    }
+  }, [selectedChannelId]);
+
   return (
     <>
-      <MessageNav channelName="Conspiracies" />
+      <MessageNav channelName={selectedChannelName} channelId={selectedChannelId} />
       <div className="flex flex-col justify-between h-full">
         <div className="overflow-auto flex-grow max-h-[720px]">
           {userMessages.map((userMessage, index) => (

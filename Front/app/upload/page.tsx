@@ -1,26 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { IoPersonCircleOutline } from "react-icons/io5";
 import { CldImage } from "next-cloudinary";
-import axios from "axios";
 import styles from "./UploadImage.module.css";
+import axios from "axios";
 
 interface ImageUploadProps {
   userId: string;
-  userImage: string | null; // Add userImage prop
   onClose: () => void;
   onUpload: (imageUrl: string) => void; // Add onUpload prop
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ userId, userImage, onClose, onUpload }) => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(userImage); // Initialize with userImage
+const ImageUpload: React.FC<ImageUploadProps> = ({ userId, onClose, onUpload }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState<string | null>(null); // State to handle the message
-
-  useEffect(() => {
-    setPreviewUrl(userImage); // Set the initial preview URL to the user's current image
-  }, [userImage]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -84,7 +79,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, userImage, onClose, o
 
       // Reset the preview URL to show the default profile icon
       setPreviewUrl(null);
-      onUpload(""); // Update the parent component with an empty string to reflect the deletion
       console.log("User image deleted successfully");
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -98,25 +92,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ userId, userImage, onClose, o
           <div className="flex relative w-38 h-38 rounded-full overflow-hidden">
             <div className="flex relative w-full h-full">
               {previewUrl ? (
-                previewUrl.startsWith("http") ? (
-                  <img
-                    loading="lazy"
-                    src={previewUrl}
-                    alt="User Profile"
-                    height={180}
-                    width={180}
-                    className="object-cover"
-                  />
-                ) : (
-                  <CldImage
-                    loading="lazy"
-                    src={previewUrl}
-                    alt="User Profile"
-                    height={180}
-                    width={180}
-                    className="object-cover"
-                  />
-                )
+                <CldImage
+                  loading="lazy"
+                  src={previewUrl}
+                  alt="User Profile"
+                  height={180}
+                  width={180}
+                  className="object-cover"
+                />
               ) : (
                 <IoPersonCircleOutline
                   className="default-picture"

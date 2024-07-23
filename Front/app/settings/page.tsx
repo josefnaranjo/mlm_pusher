@@ -145,7 +145,6 @@ const AccountSettings: React.FC = () => {
                   <div className="bg-white p-4 rounded-lg shadow-lg">
                     <ImageUpload
                       userId={settingsData?.id} // Ensure the correct userId is passed
-                      userImage={settingsData?.image} // Pass the user's current image URL
                       onClose={() => setShowImageUpload(false)}
                       onUpload={handleImageUpload}
                     />
@@ -218,7 +217,7 @@ const AccountSettings: React.FC = () => {
               type="text"
               value={settingsData?.settings?.memberSince || ""}
               onChange={(e) => handleInputChange("memberSince", e.target.value)}
-              placeholder="Joined On"
+              placeholder="Member Since"
               readOnly
             />
 

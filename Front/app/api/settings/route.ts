@@ -61,7 +61,6 @@ export async function GET() {
 
     console.log('Fetched user data:', userData);
     return NextResponse.json(userData);
-
   } catch (error) {
     console.error('Error fetching user data:', error);
     return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 });
@@ -160,7 +159,6 @@ export async function PUT(req: NextRequest) {
     });
 
     console.log('Updated user data:', updatedUser);
-    
     return NextResponse.json(updatedUser);
   } catch (error) {
     console.error('Error updating user data:', error);

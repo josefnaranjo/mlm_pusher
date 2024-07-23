@@ -9,7 +9,7 @@ interface Props {
 }
 
 
-const MessageInput: React.FC<Props> = ({ onSendMessage }) => {
+const MessageInput= ({ onSendMessage } : Props) => {
   const [typedMessage, setTypedMessage] = useState<string>("");
 
   const handleSubmit = ( e: FormEvent<HTMLFormElement> ) => {
@@ -17,7 +17,7 @@ const MessageInput: React.FC<Props> = ({ onSendMessage }) => {
     if (typedMessage.trim() !== "") {
       onSendMessage(typedMessage);
       setTypedMessage("");
-      console.log("Message sent", typedMessage);
+      console.log("the Message: ", typedMessage);
     }
   }
 
@@ -47,7 +47,7 @@ const MessageInput: React.FC<Props> = ({ onSendMessage }) => {
 
   return (
     <div className="input-container">
-      <form className="entry-and-submit" onSubmit={handleSubmit}>
+      <form className="entry-and-submit ml-2" onSubmit={handleSubmit}>
         <textarea
           id="typed-message"
           placeholder="Type Message..."
