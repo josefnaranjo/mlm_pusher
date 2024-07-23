@@ -8,6 +8,8 @@ import ChannelList from "./components/ChannelList/ChannelList";
 
 export default function Home() {
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
+  const [selectedChannelName, setSelectedChannelName] = useState<string>("");
+  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
 
   return (
     <div className="project-container">
