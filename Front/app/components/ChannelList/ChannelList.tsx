@@ -18,7 +18,7 @@ interface ChannelListProps {
   onChannelSelect: (channelId: string, channelName: string) => void;
 }
 
-const ChannelList = ({ serverId }: { serverId: string}) => {
+const ChannelList = ({ serverId, onChannelSelect }: ChannelListProps) => {
   const [channels, setChannels] = useState<Channel[]>([]); // ui for creating/deleting
   const [serverName, setServerName] = useState<string>("Loading..."); // when server is loading
   const [loading, setLoading] = useState<boolean>(true); // for loading div
@@ -209,7 +209,10 @@ const ChannelList = ({ serverId }: { serverId: string}) => {
   };
 
   // similar to how server selection is handled
-  const handleChannelClick = async (channelId: string) => {
+  const handleChannelClick = async (channelId: string, channelName: string) => {
+    if (onChannelSelect) {
+      onChannelSelect(channelId, channelName);
+    }
     setNewChannelName(""); // Reset newChannelName
     const selectedChannel = channels.find(
       (channel) => channel.id === channelId
@@ -276,7 +279,7 @@ const ChannelList = ({ serverId }: { serverId: string}) => {
               className={`channel-item ${
                 selectedChannel?.id === channel.id ? "selected" : ""
               }`}
-              onClick={() => handleChannelClick(channel.id)}
+              onClick={() => handleChannelClick(channel.id, channel.name)}
               onContextMenu={(event) => handleChannelRightClick(event, channel)}
             >
               <BiText className="mr-2" />
@@ -338,7 +341,7 @@ const ChannelList = ({ serverId }: { serverId: string}) => {
               className={`channel-item ${
                 selectedChannel?.id === channel.id ? "selected" : ""
               }`}
-              onClick={() => handleChannelClick(channel.id)}
+              onClick={() => handleChannelClick(channel.id, channel.name)}
               onContextMenu={(event) => handleChannelRightClick(event, channel)}
             >
               <MdSpatialAudio className="mr-2" />
