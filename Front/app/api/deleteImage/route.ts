@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     });
 
     console.log('User image deleted:', updatedUser);  // Log successful update
+
     return NextResponse.json({ message: 'User image deleted successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error deleting user image:', error);  // Log error details

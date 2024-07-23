@@ -12,9 +12,17 @@
 
 /* Leave Server button styling */
 .popup-item.leave {
-  @apply flex items-center justify-center bg-red-400 text-center rounded-full w-full h-8;
+  @apply flex items-center justify-center bg-red-600 text-white text-center rounded-lg w-full h-8;
 }
 
 .popup-item.leave:hover {
-  @apply bg-red-200 text-black;
+  @apply bg-red-100 text-black;
+}
+
+.popup-item.delete {
+  @apply flex items-center justify-center bg-black text-center rounded-lg w-full h-8 text-white;
+}
+
+.popup-item.delete:hover {
+  @apply bg-red-600 text-white text-lg font-bold;
 }
