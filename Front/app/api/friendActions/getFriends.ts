@@ -17,18 +17,54 @@ export async function GET() {
                 ]
             },
             include: {
-                user: true,
-                friend: true
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        image: true,
+                        settings: {
+                            select: {
+                                about: true,
+                                username: true
+                            }
+                        }
+                    }
+                },
+                friend: {
+                    select: {
+                        id: true,
+                        name: true,
+                        image: true,
+                        settings: {
+                            select: {
+                                about: true,
+                                username: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
         const uniqueFriends = Array.from(new Set(friends.map(friend => {
-            const friendId = friend.userId === user.id ? friend.friend.id : friend.user.id;
-            const friendName = friend.userId === user.id ? friend.friend.name : friend.user.name;
-            return JSON.stringify({ id: friendId, name: friendName });
+            if (friend.userId === user.id) {
+                return JSON.stringify({
+                    id: friend.friend.id,
+                    name: friend.friend.name,
+                    image: friend.friend.image,
+                    username: friend.friend.settings?.username,
+                    about: friend.friend.settings?.about
+                });
+            } else {
+                return JSON.stringify({
+                    id: friend.user.id,
+                    name: friend.user.name,
+                    image: friend.user.image,
+                    username: friend.user.settings?.username,
+                    about: friend.user.settings?.about
+                });
+            }
         }))).map(str => JSON.parse(str));
-
-        console.log(uniqueFriends);  // Log the unique friends list
 
         return NextResponse.json(uniqueFriends, { status: 200 });
     } catch (error) {

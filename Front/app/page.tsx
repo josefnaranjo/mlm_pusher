@@ -3,12 +3,11 @@
 import React, { useState } from "react";
 import MessageLog from "./MessageLog";
 import SideBar from "./components/SideBar/SideBar/SideBar";
-import UserList, { generateUserList } from "./components/dm-list/dm-list";
+import UserList from "./components/dm-list/dm-list";
 import ChannelList from "./components/ChannelList/ChannelList";
 
 export default function Home() {
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
-  const userList = generateUserList(5);
 
   return (
     <div className="project-container">
@@ -23,7 +22,7 @@ export default function Home() {
           {selectedServerId ? (
             <ChannelList serverId={selectedServerId} />
           ) : (
-            <UserList userList={userList} />
+            <UserList />
           )}
         </div>
         <div className="message-log-container">
