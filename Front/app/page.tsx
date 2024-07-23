@@ -22,7 +22,11 @@ export default function Home() {
         </div>
         <div className="direct-messages-container">
           {selectedServerId ? (
-            <ChannelList serverId={selectedServerId} />
+            <ChannelList serverId={selectedServerId} 
+            onChannelSelect={(channelId, channelName) => {
+              setSelectedChannelId(channelId);
+              setSelectedChannelName(channelName);
+            }}/>
           ) : (
             <UserList />
           )}
