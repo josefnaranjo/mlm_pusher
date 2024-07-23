@@ -13,7 +13,12 @@ interface Channel {
   onChannelSelect: (channelId: string, channelName: string) => void;
 }
 
-const ChannelList = ({ serverId }: { serverId: string }) => {
+interface ChannelListProps {
+  serverId: string;
+  onChannelSelect: (channelId: string, channelName: string) => void;
+}
+
+const ChannelList = ({ serverId }: { serverId: string}) => {
   const [channels, setChannels] = useState<Channel[]>([]); // ui for creating/deleting
   const [serverName, setServerName] = useState<string>("Loading..."); // when server is loading
   const [loading, setLoading] = useState<boolean>(true); // for loading div
