@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { RefObject, useEffect, useRef, useState } from 'react';
 import './AddPopup.css';
 
 // Brought this here as well so we dont refresh the page but rather the UI instead
@@ -14,12 +14,14 @@ interface AddPopupProps {
     onClose: () => void;
     position: { x: number, y: number };
     onServerAdded: (newServer: Server) => void; // Callback
+    ref?: RefObject<HTMLDivElement>; // Added the ref property to the interface
 }
 
 const offsetX = 40;
 const offsetY = -60;
 
-const AddPopup = ({ onClose, position, onServerAdded  }: AddPopupProps) => {
+const AddPopup = ({ onClose, position, onServerAdded, ref }: AddPopupProps) => {
+    const addPopupRef = useRef<HTMLDivElement>(null);
     const [inviteCode, setInviteCode] = useState("");
     const [message, setMessage] = useState("");
     const [serverName, setServerName] = useState('');
@@ -84,8 +86,31 @@ const AddPopup = ({ onClose, position, onServerAdded  }: AddPopupProps) => {
         }
     };
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+          if (
+            addPopupRef.current &&
+            !addPopupRef.current.contains(event.target as Node)
+          ) {
+            onClose();
+          }
+        };
+    
+        document.addEventListener(
+          "mousedown",
+          handleClickOutside as unknown as EventListener
+        );
+        return () => {
+          document.removeEventListener(
+            "mousedown",
+            handleClickOutside as unknown as EventListener
+          );
+        };
+      }, [onClose]);
+
     return (
         <div
+            ref={ref || addPopupRef}
             className='add-popup flex flex-col'
             style={{
                 top: position.y + offsetY,

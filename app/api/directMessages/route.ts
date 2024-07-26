@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
 
   try {
     let { content, userId, channelId} = await request.json();
-    channelId = "07942561-fc74-4612-9324-34ae03ae49e6";
     const createdAt = new Date();
 
     const user = await prisma.user.findUnique({ where: { id: userId } });

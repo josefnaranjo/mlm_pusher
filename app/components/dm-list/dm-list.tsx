@@ -11,6 +11,11 @@ type User = {
   activeState: "active" | "away" | "offline";
 };
 
+type UserListProps = {
+  userId: string;
+  onSelectUser: (userId: string) => void;
+};
+
 const getColorFromState = (state: "active" | "away" | "offline"): string => {
   switch (state) {
     case "active":
@@ -24,9 +29,9 @@ const getColorFromState = (state: "active" | "away" | "offline"): string => {
   }
 };
 
-const UserList: React.FC = () => {
+const UserList: React.FC<UserListProps> = ({onSelectUser}) => {
   const [userList, setUserList] = useState<User[]>([]);
-  const [selected, onSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -70,12 +75,15 @@ const UserList: React.FC = () => {
                     : "group hover:bg-gray-200"
                 }`}
                 style={{ maxWidth: "360px" }}
-                onClick={() => onSelected(user.id === selected ? null : user.id)}
+                onClick={() => {
+                  setSelected(user.id === selected ? null : user.id)
+                  onSelectUser(user.id)
+                }}
               >
                 {/* User icon/picture */}
                 <div className="user-icon"> 
                   <Image
-                    src={user.image}
+                    src={user.image || ""}
                     alt={user.username}
                     fill={true}
                     className="object-contain"

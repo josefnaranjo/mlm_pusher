@@ -258,6 +258,9 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
 
   // Use the custom hook for outside click detection
   const popupRef = useOutsideClick(() => setPopupVisible(false));
+  const addPopupRef = useOutsideClick(() => setAddPopupVisible(false));
+  const friendsPopupRef = useOutsideClick(() => setFriendPopupVisible(false));
+  const settingsPopupRef = useOutsideClick(() => setSettingsPopupVisible(false));
 
   /* 
   This updates the UI with the new server whether created or joined, that way we don't have to refresh 
@@ -304,6 +307,7 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
           onContextMenu={(event) =>
             handleIconRightClick(server.name, event, server.id)
           }
+          className={ `${selectedServer?.id === server.id ? "selected" : "" }`} // Apply the Tailwind CSS classes conditionally if a server is selected
         />
       ))}
       {servers && !loading && <Divider />}
@@ -335,6 +339,7 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
           onAccountDetails={handleAccountDetails} // Add the navigation handler
           onClose={handleCloseSettingsPopup}
           position={popupPosition}
+          ref={settingsPopupRef} // Attach the ref to the popup
         />
       )}
       {addPopupVisible && (
@@ -342,12 +347,14 @@ const SideBar: React.FC<SideBarProps> = ({ onSelectServer }) => {
           onClose={handleCloseAddPopup}
           position={popupPosition}
           onServerAdded={handleServerAdded}
+          ref={addPopupRef}
         />
       )}
       {friendPopupVisible && (
         <FriendPopup
           onClose={handleCloseFriendPopup}
           position={popupPosition}
+          ref={friendsPopupRef}
         />
       )}
     </div>

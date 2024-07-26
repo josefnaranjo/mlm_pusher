@@ -58,7 +58,7 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
     fetchChannelName();
   }, [channelId]);
 
-  const createNewMessage = async (content: string, channelId: number, userId: string): Promise<string | null> => {
+  const createNewMessage = async (content: string, channelId: string, userId: string): Promise<string | null> => {
     const user = await currentUser();
 
     if (!user) {
@@ -119,7 +119,7 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
       }
 
       const userId = currentUserId; // Using the dynamically fetched user ID
-      const channelId = parseInt( selectedChannelId );
+      const channelId = selectedChannelId;
 
       // Send the message to the server
       const messageId = await createNewMessage(message, channelId, userId);

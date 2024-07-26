@@ -7,6 +7,7 @@ interface SideBarIconProps {
   onClick?: (text?: string, event?: MouseEvent<HTMLDivElement>) => void; // Updated type
   //   onDoubleClick?: (text?: string, event?: MouseEvent<HTMLDivElement>) => void; // Updated type
   onContextMenu?: (event: MouseEvent<HTMLDivElement>) => void; // Updated type
+  className?: string;
 }
 
 const SideBarIcon = ({
@@ -15,9 +16,10 @@ const SideBarIcon = ({
   onClick,
   //   onDoubleClick,
   onContextMenu,
+  className,
 }: SideBarIconProps) => (
   <div
-    className="sidebar-icon group"
+    className={`sidebar-icon group ${className}`}
     onClick={(event) =>
       onClick && onClick(text, event as MouseEvent<HTMLDivElement>)
     } // Cast event type

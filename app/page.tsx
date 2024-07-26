@@ -10,6 +10,7 @@ export default function Home() {
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [selectedChannelName, setSelectedChannelName] = useState<string>("");
   const [selectedChannelId, setSelectedChannelId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
 
   return (
     <div className="project-container">
@@ -23,12 +24,19 @@ export default function Home() {
         <div className="direct-messages-container">
           {selectedServerId ? (
             <ChannelList serverId={selectedServerId} 
-            onChannelSelect={(channelId, channelName) => {
+              onChannelSelect={(channelId, channelName) => {
               setSelectedChannelId(channelId);
               setSelectedChannelName(channelName);
             }}/>
           ) : (
-            <UserList />
+            <UserList 
+              userId={selectedUserId}
+              onSelectUser={(userId) => {
+                setSelectedUserId(userId);
+                console.log(userId)
+                setSelectedChannelId("");
+                setSelectedChannelName("");
+              }}/>
           )}
         </div>
         <div className="message-log-container">

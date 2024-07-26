@@ -48,7 +48,7 @@ const Popup = ({
         }
         const data = await response.json();
         const { role } = data
-        setIsAdmin(role === "ADMIN" || role === "MODERATOR");
+        setIsAdmin(role === "ADMIN");
       } catch (error) {
         console.error("Failed to fetch user role: ", error);
       };
@@ -121,7 +121,7 @@ const Popup = ({
           Invite Friend to {serverName}
         </li>
         <Divider />
-        <li className="popup-item">Edit Member of {serverName}</li>
+        <li className="popup-item">View {serverName} members</li>
         <Divider />
         <button className="popup-item leave" onClick={onLeave}>
           Leave {serverName}
