@@ -21,6 +21,19 @@ export async function GET(req: NextRequest) {
     console.log(`Fetching channel with ID: ${channelId}`);
     const channel = await prisma.channel.findUnique({
       where: { id: channelId },
+      include: {
+        messages: {
+          include: {
+            user: { // Include user information for each message
+              select: {
+                id: true,
+                name: true,
+                image: true, // Ensure the image URL is included
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!channel) {

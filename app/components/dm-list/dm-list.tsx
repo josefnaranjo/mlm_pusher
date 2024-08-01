@@ -2,6 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
 import "./dm-list.css";
+import defaultImage from './icon.png'
 
 type User = {
   id: string;
@@ -83,7 +84,7 @@ const UserList: React.FC<UserListProps> = ({onSelectUser}) => {
                 {/* User icon/picture */}
                 <div className="user-icon"> 
                   <Image
-                    src={user.image || ""}
+                    src={user.image || defaultImage}
                     alt={user.username}
                     fill={true}
                     className="object-contain"

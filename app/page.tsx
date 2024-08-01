@@ -40,7 +40,11 @@ export default function Home() {
           )}
         </div>
         <div className="message-log-container">
-          <MessageLog channelName={selectedChannelName} channelId={selectedChannelId} />
+          {selectedUserId ? (
+            <MessageLog userId={selectedUserId} channelName={""} channelId={""} />
+          ) : (
+            <MessageLog channelName={selectedChannelName} channelId={selectedChannelId} userId={""}/>
+          )}
         </div>
       </div>
     </div>

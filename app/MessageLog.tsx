@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MessageInput from "./components/message-column/MessageInput";
 import MessageNav from "./components/message-column/MessageNav";
 import ExistingUserMessages from "./components/message-column/Messages";
@@ -9,16 +9,16 @@ import axios from "axios";
 import { StaticImageData } from "next/image";
 import { currentUser } from "@/lib/current-user";
 
-
 interface Message {
   time: string;
   text: string;
   id: string;
+  createdAt: Date;
 }
 
 interface NEWUserMessage {
   name: string;
-  img: StaticImageData | null;
+  img: StaticImageData | string | null;
   userID: string;
   messages: Message[];
 }
@@ -26,39 +26,65 @@ interface NEWUserMessage {
 interface MessageLogProps {
   channelName: string;
   channelId: string;
+  userId: string;
 }
 
-const MessageLog = ({ channelName, channelId } : MessageLogProps ) => { 
+const MessageLog = ({ channelName, channelId, userId }: MessageLogProps) => {
   const [userMessages, setUserMessages] = useState<NEWUserMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [selectedChannelName, setSelectedChannelName] = useState<string>(channelName); // when server is loading;
-  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null); // when server is loading;
-
-  const channelIDTemplate = `${channelId}`
-  const channelNameTemplate = `${channelName}`
+  const [currentUserImage, setCurrentUserImage] = useState<string | StaticImageData>(avatar);
+  const [selectedChannelName, setSelectedChannelName] = useState<string>(channelName);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const messageEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchChannelName = async() => {
-      try {
-        const response = await fetch(`/api/channels/${channelId}`);
-        if (response.ok) {
-          const channel = await response.json();
-          setSelectedChannelName(channel.name);
-          setSelectedChannelId(channelId); 
-          console.log(`you are now in Channel: "${channelNameTemplate}", ID: ${channelIDTemplate}`);
-        } else {
-          throw new Error("Failed to load channel name");
-        }
-      } catch (error) {
-        console.error("Error loading channel:", error);
-        setSelectedChannelName("Error loading channel");
+    const fetchCurrentUser = async () => {
+      const user = await currentUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        setCurrentUserImage(user.image || avatar); // Set the current user's image
+      } else {
+        console.error("User is not authenticated");
       }
     };
 
-    fetchChannelName();
-  }, [channelId]);
+    fetchCurrentUser();
+  }, []);
 
-  const createNewMessage = async (content: string, channelId: string, userId: string): Promise<string | null> => {
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        if (channelId) {
+          setSelectedChannelId(channelId);
+          setSelectedChannelName(channelName);
+
+          const response = await axios.get(`/api/channels/${channelId}`);
+          const channel = response.data;
+          const messages = channel.messages;
+          console.log('Fetched messages:', messages);
+          
+          // Convert and compare messages
+          const newMessages = convertToUserMessages(messages);
+          if (JSON.stringify(newMessages) !== JSON.stringify(userMessages)) {
+            setUserMessages(newMessages);
+            scrollToBottom();
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    fetchMessages();
+
+    // Poll for new messages every 5 seconds
+    const intervalId = setInterval(fetchMessages, 5000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  }, [channelId, userId, channelName, userMessages]);
+
+  const createNewMessage = async (content: string, channelId: string | null, userId: string): Promise<string | null> => {
     const user = await currentUser();
 
     if (!user) {
@@ -72,7 +98,7 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, channelId, userId }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         console.log('Message created:', data);
@@ -88,81 +114,65 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
     }
   };
 
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const user = await currentUser();
-      if (user) {
-        setCurrentUserId(user.id);
-        setUserMessages([
-          {
-            name: "Orchid",
-            img: avatar,
-            userID: user.id,
-            messages: [],
-          },
-        ]);
-      } else {
-        console.error("User is not authenticated");
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
-
   const sendMessage = async (message: string): Promise<void> => {
     try {
-      if (!selectedChannelId) {
-        console.error("Channel ID is not set");
-        return;
-      }  else {
-        console.log(`Message sent in "${channelName}", ID: ${channelIDTemplate}`)
-      }
+      const userId = currentUserId;
 
-      const userId = currentUserId; // Using the dynamically fetched user ID
-      const channelId = selectedChannelId;
-
-      // Send the message to the server
-      const messageId = await createNewMessage(message, channelId, userId);
-
-      if (messageId != null) {
-        const copyNewUserMessages = [...userMessages];
-        if (copyNewUserMessages.length > 0 && copyNewUserMessages[copyNewUserMessages.length - 1].userID === userId) {
-          copyNewUserMessages[copyNewUserMessages.length - 1].messages.push({
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            text: message,
-            id: messageId
-          });
-        } else {
-          copyNewUserMessages.push({
-            name: 'Orchid',
-            img: avatar,
-            userID: userId,
-            messages: [{
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              text: message,
-              id: messageId
-            }],
-          });
+      if (selectedChannelId) {
+        const messageId = await createNewMessage(message, selectedChannelId, userId);
+        if (messageId != null) {
+          updateLocalMessages(userId, message, messageId);
+          scrollToBottom();
         }
-        // Update the local state to reflect the new message
-        setUserMessages(copyNewUserMessages);
       }
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
+  const updateLocalMessages = (userId: string, message: string, messageId: string) => {
+    const copyNewUserMessages = [...userMessages];
+    const currentTime = new Date().toISOString();
+
+    const newMessage = {
+      time: formatTime(currentTime),
+      text: message,
+      id: messageId,
+      createdAt: new Date(currentTime),
+    };
+
+    // Check if the last entry in userMessages is for the same user
+    if (copyNewUserMessages.length > 0 && copyNewUserMessages[copyNewUserMessages.length - 1].userID === userId) {
+      copyNewUserMessages[copyNewUserMessages.length - 1].messages.push(newMessage);
+    } else {
+      const user = copyNewUserMessages.find(um => um.userID === userId);
+      const userName = user ? user.name : "User";
+      const userImg = user ? user.img : currentUserImage; // Use current user's image if user is not found
+
+      copyNewUserMessages.push({
+        name: userId === currentUserId ? "You" : userName,
+        img: userId === currentUserId ? currentUserImage : userImg,
+        userID: userId,
+        messages: [newMessage],
+      });
+    }
+
+    setUserMessages(copyNewUserMessages);
+  };
+
   const convertToUserMessages = (messages: Array<any>): NEWUserMessage[] => {
     const convertedUserMessages: NEWUserMessage[] = [];
     let lastUserID: string = "";
     let currentUserMessage: NEWUserMessage = {
-      name: "coffee",
+      name: "User",
       messages: [],
       img: null,
-      userID: "3"
+      userID: "",
     };
 
-    messages.forEach(message => {
+    messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    messages.forEach((message) => {
       if (message.userId === lastUserID) {
         currentUserMessage.messages.push(convertMessageBody(message));
         return;
@@ -171,10 +181,10 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
         convertedUserMessages.push(currentUserMessage);
       }
       currentUserMessage = {
-        name: "Orchid", // Replace with actual name from user data
+        name: message.userId === currentUserId ? "You" : message.user.name, // Ensure the user name is included in the response
+        img: message.user.image || avatar, // Ensure the user image is included in the response
         userID: message.userId,
         messages: [convertMessageBody(message)],
-        img: null
       };
       lastUserID = message.userId;
     });
@@ -182,45 +192,41 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
     if (currentUserMessage.messages.length > 0) {
       convertedUserMessages.push(currentUserMessage);
     }
+    console.log('Converted user messages:', convertedUserMessages);
     return convertedUserMessages;
   };
 
   const convertMessageBody = (message: any): Message => {
-    const date = new Date(message.createdAt);
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const formattedHours = hours % 12 || 12;
-    const formattedTime = `${formattedHours}:${minutes} ${ampm}`;
-    
     return {
-      time: formattedTime,
+      time: formatTime(message.createdAt),
       text: message.content,
-      id: message.id
+      id: message.id,
+      createdAt: new Date(message.createdAt),
     };
   };
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const response = await axios.get('/api/directMessages');
-        console.log(`Here are the fetched messages for "${channelNameTemplate}", ID: ${channelIDTemplate}`, response.data);
-        setUserMessages(convertToUserMessages(response.data));
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Los_Angeles', // Pacific Time Zone
     };
+    return new Intl.DateTimeFormat('en-US', options).format(date);
+  };
 
-    if (selectedChannelId) {
-      fetchMessages();
+  const scrollToBottom = () => {
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedChannelId]);
+  };
 
   return (
     <>
       <MessageNav channelName={selectedChannelName} channelId={selectedChannelId} />
       <div className="flex flex-col justify-between h-full">
-        <div className="overflow-auto flex-grow max-h-[720px]">
+        <div className="overflow-auto flex-grow max-h-[1000px]">
           {userMessages.map((userMessage, index) => (
             <ExistingUserMessages
               key={index}
@@ -230,6 +236,7 @@ const MessageLog = ({ channelName, channelId } : MessageLogProps ) => {
               messages={userMessage.messages}
             />
           ))}
+          <div ref={messageEndRef} />
         </div>
         <MessageInput onSendMessage={sendMessage} />
       </div>
