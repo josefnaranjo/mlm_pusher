@@ -48,7 +48,15 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         channelId,
         createdAt,
-        updatedAt: createdAt
+        updatedAt: createdAt,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
