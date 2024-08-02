@@ -57,6 +57,7 @@ const MessageLog = ({ channelName, channelId, userId }: MessageLogProps) => {
         if (channelId) {
           setSelectedChannelId(channelId);
           setSelectedChannelName(channelName);
+          scrollToBottom();
 
           const response = await axios.get(`/api/channels/${channelId}`);
           const channel = response.data;
@@ -145,7 +146,7 @@ const MessageLog = ({ channelName, channelId, userId }: MessageLogProps) => {
     if (copyNewUserMessages.length > 0 && copyNewUserMessages[copyNewUserMessages.length - 1].userID === userId) {
       copyNewUserMessages[copyNewUserMessages.length - 1].messages.push(newMessage);
     } else {
-      const user = copyNewUserMessages.find(um => um.userID === userId);
+      const user = copyNewUserMessages.find(userMessage => userMessage.userID === userId);
       const userName = user ? user.name : "User";
       const userImg = user ? user.img : currentUserImage; // Use current user's image if user is not found
 
