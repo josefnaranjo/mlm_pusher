@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log(messages)
     return NextResponse.json(messages, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });

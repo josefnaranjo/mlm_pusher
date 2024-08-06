@@ -5,6 +5,7 @@ import "./dm-list.css";
 
 type User = {
   id: string;
+  name: string;
   username: string;
   image: string;
   about: string;
@@ -92,6 +93,9 @@ const UserList: React.FC<UserListProps> = ({onSelectUser}) => {
                 </div>
                 {/* Displays friend's name and their "About" information with a basically default of "No username" or "No information" if there's nothing */}
                 <div className="flex flex-col w-full pl-3 max-w-[272px]">
+                  {/* <span className="user-name">{user.name || "No username"}</span> 
+                      This code here allows for the user's name to show up instead of their username.
+                  */}
                   <span className="user-name">{user.username || "No username"}</span>
                   <p className="truncate text-sm">{user.about || "No Information"}</p>
                 </div>
