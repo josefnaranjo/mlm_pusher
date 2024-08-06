@@ -1,0 +1,13 @@
+{
+  "/settings/page": "app/settings/page.js",
+  "/api/settings/route": "app/api/settings/route.js",
+  "/page": "app/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/servers/route": "app/api/servers/route.js",
+  "/api/servers/[serverId]/route": "app/api/servers/[serverId]/route.js",
+  "/api/friendActions/route": "app/api/friendActions/route.js",
+  "/api/channels/route": "app/api/channels/route.js",
+  "/api/messages/[messageId]/route": "app/api/messages/[messageId]/route.js",
+  "/api/channels/[channelId]/route": "app/api/channels/[channelId]/route.js",
+  "/api/user/[id]/route": "app/api/user/[id]/route.js"
+}
