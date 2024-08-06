@@ -1,25 +1,35 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import MessageInput from "./components/message-column/MessageInput";
 import MessageNav from "./components/message-column/MessageNav";
 import ExistingUserMessages from "./components/message-column/Messages";
 import axios from "axios";
-import { StaticImageData } from "next/image";
 import { currentUser } from "@/lib/current-user";
+import usePusher from "./usePusher";
 import DefaultDisplay from "./components/message-column/DefaultDisplay";
 
 interface Message {
-  time: string;
-  date: string;
-  text: string;
   id: string;
-  createdAt: Date;
+  createdAt: string;
+  text: string;
+  displayTime: string;
+  userId: string;
+  userName: string;
+  userImage: string;
 }
 
-interface NEWUserMessage {
+interface NewMessage {
+  content: string;
+  channelId: string;
+  userId: string;
+  userName: string;
+  userImage: string;
+}
+
+interface UserMessage {
   name: string;
-  img: StaticImageData | string | null;
+  img: string;
   userID: string;
   messages: Message[];
 }
@@ -31,23 +41,36 @@ interface MessageLogProps {
   userName: string;
 }
 
-const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProps) => {
-  const avatar = "https://cdn4.iconfinder.com/data/icons/office-thick-outline/36/office-14-256.png"
+const MessageLog = ({
+  channelName,
+  channelId,
+  userId,
+  userName,
+}: MessageLogProps) => {
+  const avatar =
+    "https://cdn4.iconfinder.com/data/icons/office-thick-outline/36/office-14-256.png";
 
-  const [userMessages, setUserMessages] = useState<NEWUserMessage[]>([]);
+  const [userMessages, setUserMessages] = useState<UserMessage[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const [currentUserImage, setCurrentUserImage] = useState<string | StaticImageData>(avatar);
-  const [selectedChannelName, setSelectedChannelName] = useState<string>(channelName);
-  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(channelId);
+  const [currentUserName, setCurrentUserName] = useState<string>("Anonymous");
+  const [currentUserImage, setCurrentUserImage] = useState<string>(avatar);
+  const [selectedChannelName, setSelectedChannelName] =
+    useState<string>(channelName);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    channelId
+  );
   const [selectedUserId, setSelectedUserId] = useState<string | null>(userId);
   const [selectedUserName, setSelectedUserName] = useState<string>(userName);
-  const messageEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { messages: pusherMessages } = usePusher(channelName, "new-message");
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
       const user = await currentUser();
       if (user) {
         setCurrentUserId(user.id);
+        setCurrentUserName(user.name || "Anonymous");
         setCurrentUserImage(user.image || avatar);
       } else {
         console.error("User is not authenticated");
@@ -64,32 +87,31 @@ const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProp
           setSelectedChannelId(channelId);
           setSelectedChannelName(channelName);
           setSelectedUserId(null);
-          scrollToBottom();
 
+          const response = await axios.get(
+            `/api/directMessages?id=${channelId}`
+          );
+          const channelMessages = response.data.map((msg: any) =>
+            convertMessageBody(msg)
+          );
 
-          const response = await axios.get(`/api/channels/${channelId}`);
-          const channel = response.data;
-          const messages = channel.messages;
-          console.log("Fetched channel messages:", messages);
-
-          const newMessages = convertToUserMessages(messages);
+          const newMessages = convertToUserMessages(channelMessages);
           if (JSON.stringify(newMessages) !== JSON.stringify(userMessages)) {
             setUserMessages(newMessages);
-            scrollToBottom();
           }
         } else if (userId) {
           setSelectedUserId(userId);
           setSelectedUserName(userName);
           setSelectedChannelId(null);
 
-          const response = await axios.get(`/api/directMessages/${userId}`);
-          const messages = response.data;
-          console.log("Fetched direct messages:", messages);
+          const response = await axios.get(`/api/directMessages?id=${userId}`);
+          const messages = response.data.map((msg: any) =>
+            convertMessageBody(msg)
+          );
 
           const newMessages = convertToUserMessages(messages);
           if (JSON.stringify(newMessages) !== JSON.stringify(userMessages)) {
             setUserMessages(newMessages);
-            scrollToBottom();
           }
         }
       } catch (error) {
@@ -98,125 +120,107 @@ const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProp
     };
 
     fetchMessages();
+  }, [channelId, userId, channelName, userName]);
 
-    const intervalId = setInterval(fetchMessages, 5000);
+  useEffect(() => {
+    if (pusherMessages.length) {
+      setUserMessages((prevMessages) => {
+        const existingIds = new Set(
+          prevMessages.flatMap((userMessage) =>
+            userMessage.messages.map((msg) => msg.id)
+          )
+        );
+        const newMessages = pusherMessages
+          .map((msg) => convertMessageBody(msg))
+          .filter((msg) => !existingIds.has(msg.id));
 
-    return () => clearInterval(intervalId);
-  }, [channelId, userId, userMessages, channelName, userName]);
+        const updatedMessages = convertToUserMessages([
+          ...prevMessages.flatMap((userMsg) => userMsg.messages),
+          ...newMessages,
+        ]);
 
-  const createNewMessage = async (content: string): Promise<string | null> => {
-    const user = await currentUser();
-
-    if (!user) {
-      console.error("Unauthorized access");
-      return null;
+        return updatedMessages;
+      });
     }
+  }, [pusherMessages]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [userMessages]);
+
+  const handleSendMessage = async (content: string): Promise<void> => {
     try {
-      let response;
-      if (selectedChannelId) {
-        response = await fetch(`/api/directMessages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content, channelId, userId: user.id }),
+      if (selectedChannelId && currentUserId) {
+        const newMessage: NewMessage = {
+          content,
+          channelId: selectedChannelId,
+          userId: currentUserId,
+          userName: currentUserName,
+          userImage: currentUserImage || avatar,
+        };
+
+        // Send the message to the backend, which will handle Pusher
+        await axios.post(`/api/pusher`, {
+          channelName,
+          eventName: "new-message",
+          message: newMessage,
         });
-      } else if (selectedUserId) {
-        response = await fetch(`/api/directMessages/${selectedUserId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
-        });
-      }
-
-      if (response && response.ok) {
-        const data = await response.json();
-        console.log("Message created:", data);
-        return data.id;
-      } else if (response) {
-        const errorData = await response.json();
-        console.error("Failed to create message:", errorData);
-      }
-      return null;
-    } catch (error) {
-      console.error("Failed to create message:", error);
-      return null;
-    }
-  };
-
-  const sendMessage = async (message: string): Promise<void> => {
-    try {
-      const userId = currentUserId;
-
-      if (selectedChannelId || selectedUserId) {
-        const messageId = await createNewMessage(message);
-        if (messageId != null) {
-          updateLocalMessages(userId, message, messageId);
-          scrollToBottom();
-        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  const updateLocalMessages = (userId: string, message: string, messageId: string) => {
-    const copyNewUserMessages = [...userMessages];
-    const currentTime = new Date().toISOString();
-
-    const newMessage = {
-      time: formatTime(currentTime),
-      date: formatDate(currentTime),
-      text: message,
-      id: messageId,
-      createdAt: new Date(currentTime),
-    };
-
-    // Check if the last entry in userMessages is for the same user
-    if (
-      copyNewUserMessages.length > 0 &&
-      copyNewUserMessages[copyNewUserMessages.length - 1].userID === userId
-    ) {
-      copyNewUserMessages[copyNewUserMessages.length - 1].messages.push(newMessage);
-    } else {
-      const user = copyNewUserMessages.find((userMessage) => userMessage.userID === userId);
-      const userName = user ? user.name : "User";
-      const userImg = user ? user.img : currentUserImage;
-
-      copyNewUserMessages.push({
-        name: userId === currentUserId ? "You" : userName,
-        img: userId === currentUserId ? currentUserImage : userImg,
-        userID: userId,
-        messages: [newMessage],
-      });
+  const deleteMessage = async (messageId: string): Promise<void> => {
+    try {
+      const response = await axios.delete(`/api/messages/${messageId}`);
+      if (response.status === 200) {
+        deleteMessageFromState(messageId);
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
     }
-
-    setUserMessages(copyNewUserMessages);
   };
 
-  const convertToUserMessages = (messages: Array<any>): NEWUserMessage[] => {
-    const convertedUserMessages: NEWUserMessage[] = [];
+  const deleteMessageFromState = (messageId: string) => {
+    setUserMessages((prevMessages) => {
+      const updatedMessages = prevMessages.map((userMessage) => ({
+        ...userMessage,
+        messages: userMessage.messages.filter((msg) => msg.id !== messageId),
+      }));
+      return updatedMessages.filter(
+        (userMessage) => userMessage.messages.length > 0
+      );
+    });
+  };
+
+  const convertToUserMessages = (messages: Message[]): UserMessage[] => {
+    const convertedUserMessages: UserMessage[] = [];
     let lastUserID: string = "";
-    let currentUserMessage: NEWUserMessage = {
+    let currentUserMessage: UserMessage = {
       name: "User",
       messages: [],
-      img: null,
+      img: "",
       userID: "",
     };
 
-    messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    messages.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
 
     messages.forEach((message) => {
       if (message.userId === lastUserID) {
-        currentUserMessage.messages.push(convertMessageBody(message));
+        currentUserMessage.messages.push(message);
       } else {
         if (lastUserID !== "") {
           convertedUserMessages.push(currentUserMessage);
         }
         currentUserMessage = {
-          name: message.userId === currentUserId ? "You" : message.user.name,
-          img: message.user.image || avatar,
+          name: message.userId === currentUserId ? "You" : message.userName,
+          img: message.userImage || avatar,
           userID: message.userId,
-          messages: [convertMessageBody(message)],
+          messages: [message],
         };
         lastUserID = message.userId;
       }
@@ -229,12 +233,23 @@ const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProp
   };
 
   const convertMessageBody = (message: any): Message => {
+    const date = new Date(message.createdAt);
+    const localTime = !isNaN(date.getTime())
+      ? date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "Invalid Date";
+
     return {
-      time: formatTime(message.createdAt),
-      date: formatDate(message.createdAt),
-      text: message.content,
       id: message.id,
-      createdAt: new Date(message.createdAt),
+      createdAt: message.createdAt,
+      text: message.content,
+      displayTime: localTime,
+      userId: message.userId,
+      userName: message.user?.name || "Anonymous",
+      userImage: message.user?.image || avatar,
     };
   };
 
@@ -260,32 +275,31 @@ const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProp
   };
 
   const scrollToBottom = () => {
-    if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  const organizeMessagesByDate = (userMessages: NEWUserMessage[]) => {
-    const organizedMessages: (NEWUserMessage | { date: string })[] = [];
+  const organizeMessagesByDate = (userMessages: UserMessage[]) => {
+    const organizedMessages: (UserMessage | { date: string })[] = [];
     let lastDate: string | null = null;
 
     userMessages.forEach((userMessage) => {
       userMessage.messages.forEach((message) => {
-        const messageDate = message.date;
+        const messageDate = formatDate(message.createdAt);
 
         if (lastDate !== messageDate) {
           organizedMessages.push({ date: messageDate });
           lastDate = messageDate;
         }
 
-        // Check if the last entry is from the same user
         const lastUserMessage = organizedMessages[organizedMessages.length - 1];
         if (
           lastUserMessage &&
           "userID" in lastUserMessage &&
           lastUserMessage.userID === userMessage.userID
         ) {
-          (lastUserMessage as NEWUserMessage).messages.push(message);
+          (lastUserMessage as UserMessage).messages.push(message);
         } else {
           organizedMessages.push({
             ...userMessage,
@@ -307,14 +321,21 @@ const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProp
       ) : (
         <>
           <MessageNav
-            channelName={selectedChannelId ? selectedChannelName : selectedUserName || "Direct Messages"}
+            channelName={
+              selectedChannelId
+                ? selectedChannelName
+                : selectedUserName || "Direct Messages"
+            }
             channelId={selectedChannelId}
           />
           <div className="flex flex-col justify-between h-full">
             <div className="overflow-auto flex-grow h-[500px] max-h-screen">
               {organizedMessages.map((message, index) =>
                 "date" in message ? (
-                  <div key={index} className="relative text-center my-2 text-lime-500">
+                  <div
+                    key={index}
+                    className="relative text-center my-2 text-lime-500"
+                  >
                     <div className="flex items-center">
                       <div className="flex-grow h-px bg-lime-500"></div>
                       <span className="px-4">{message.date}</span>
@@ -328,13 +349,15 @@ const MessageLog = ({ channelName, channelId, userId, userName }: MessageLogProp
                     name={message.name}
                     userID={message.userID}
                     messages={message.messages}
+                    onDeleteMessage={deleteMessage}
+                    currentUserId={currentUserId}
                   />
                 )
               )}
-              <div ref={messageEndRef} />
+              <div ref={messagesEndRef} />
             </div>
             <div className="px-2 border-t">
-              <MessageInput onSendMessage={sendMessage} />
+              <MessageInput onSendMessage={handleSendMessage} />
             </div>
           </div>
         </>

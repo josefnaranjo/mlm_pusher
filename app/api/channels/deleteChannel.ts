@@ -23,7 +23,8 @@ export async function DELETE(req: NextRequest) {
     });
 
     return NextResponse.json({ success: "Channel deleted" }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Error deleting channel:", error.message || error);
     return NextResponse.json(
       { error: "Error deleting channel" },
       { status: 500 }
