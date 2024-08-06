@@ -245,10 +245,8 @@ const ChannelList = ({ serverId, onChannelSelect }: ChannelListProps) => {
 
   return (
     <div className="channel-list-container h-auto">
-      {" "}
       {/* main container of everything, h is auto so the display isn't broken */}
-      <div className="server-bar shadow-sm py-1">
-        {" "}
+      <div className="server-bar shadow-sm py-1 border-b-[1.5px] border-gray-400/opacity-50">
         {/* container of the server name */}
         <div className="server-name">{serverName}</div>
         <button className="flex justify-center">

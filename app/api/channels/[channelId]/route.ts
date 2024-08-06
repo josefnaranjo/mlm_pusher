@@ -41,7 +41,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
     }
 
-    console.log('Channel fetched successfully:', channel);
     return NextResponse.json(channel, { status: 200 });
   } catch (error) {
     console.error('Error fetching channel:', error);

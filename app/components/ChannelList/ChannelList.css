@@ -1,10 +1,10 @@
 .server-bar {
-  @apply flex items-center justify-between w-auto p-1
+  @apply flex items-center justify-between w-auto h-[63px] p-2
     hover:bg-gray-100 transition-all duration-200;
 }
 
 .server-name {
-  @apply font-medium max-w-72 text-2xl whitespace-nowrap overflow-hidden overflow-ellipsis;
+  @apply font-medium max-w-72 text-2xl whitespace-nowrap overflow-hidden overflow-ellipsis cursor-pointer;
 }
 
 .channel-type {

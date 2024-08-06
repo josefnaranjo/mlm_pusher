@@ -26,21 +26,25 @@ const ExistingUserMessages = ({ img, name, messages }: Props) => {
   const deleteMessage = async (event: React.MouseEvent<HTMLButtonElement, MouseEvent>, messageId: string) => {
     const deleteThisMessage = event.currentTarget.closest('.text-message');
     const deleteUserData = event.currentTarget.closest('.userinfo-message-container');
-
+  
     if (deleteThisMessage) {
-      const messageId = deleteThisMessage.getAttribute('data-id');
       try {
         const response = await fetch('/api/directMessages', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: messageId }),
         });
-
+  
         if (response.ok) {
-          setMessageList((prevMessages) => prevMessages.filter((message) => message.id !== messageId));
-          if (messageList.length === 1) {
-            deleteUserData?.remove();
+          if (deleteThisMessage && deleteThisMessage.parentNode) {
+            deleteThisMessage.remove();
           }
+  
+          // Check if the container has any more messages
+          if (deleteUserData && deleteUserData.querySelectorAll('.text-message').length === 0) {
+            deleteUserData.remove();
+          }
+  
           console.log(`Successfully deleted message with ID: ${messageId}`);
         } else {
           const errorData = await response.json();
@@ -105,14 +109,14 @@ const ExistingUserMessages = ({ img, name, messages }: Props) => {
           <div className="userinfo-container">
             {img && (
               <Image
-                src={img}
+                src={img || "https://cdn4.iconfinder.com/data/icons/office-thick-outline/36/office-14-256.png"}
                 quality={100}
-                width={43}
-                height={43}
+                width={45}
+                height={45}
                 style={{
-                  maxWidth: "43px",
-                  maxHeight: "43px",
-                  borderRadius: "50%",
+                  maxWidth: "45px",
+                  maxHeight: "45px",
+                  borderRadius: "75%",
                 }}
                 alt="prof-pic"
               />

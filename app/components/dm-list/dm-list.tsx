@@ -2,7 +2,6 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
 import "./dm-list.css";
-import defaultImage from './icon.png'
 
 type User = {
   id: string;
@@ -13,8 +12,8 @@ type User = {
 };
 
 type UserListProps = {
-  userId: string;
-  onSelectUser: (userId: string) => void;
+  userId: string | null;
+  onSelectUser: (userId: string, userName: string) => void;
 };
 
 const getColorFromState = (state: "active" | "away" | "offline"): string => {
@@ -33,6 +32,7 @@ const getColorFromState = (state: "active" | "away" | "offline"): string => {
 const UserList: React.FC<UserListProps> = ({onSelectUser}) => {
   const [userList, setUserList] = useState<User[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const defaultImage = "https://cdn4.iconfinder.com/data/icons/office-thick-outline/36/office-14-256.png"
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -78,7 +78,7 @@ const UserList: React.FC<UserListProps> = ({onSelectUser}) => {
                 style={{ maxWidth: "360px" }}
                 onClick={() => {
                   setSelected(user.id === selected ? null : user.id)
-                  onSelectUser(user.id)
+                  onSelectUser(user.id, user.username)
                 }}
               >
                 {/* User icon/picture */}
