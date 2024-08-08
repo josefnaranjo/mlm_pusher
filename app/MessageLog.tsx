@@ -88,23 +88,31 @@ const MessageLog = ({
       try {
         let response;
         if (channelId) {
-          // Fetch messages for a specific channel
-          response = await axios.get(`/api/channels/${channelId}`);
-          if (response.data && response.data.messages) {
-            const messages = response.data.messages.map((msg: any) =>
-              convertMessageBody(msg)
-            );
-            setUserMessages(convertToUserMessages(messages));
-          }
+          setSelectedChannelId(channelId);
+          setSelectedChannelName(channelName);
+          setSelectedUserId(null);
+
+          const response = await axios.get(
+            `/api/directMessages?id=${channelId}`
+          );
+          const channelMessages = response.data.map((msg: any) =>
+            convertMessageBody(msg)
+          );
+
+          const newMessages = convertToUserMessages(channelMessages);
+          setUserMessages(newMessages);
         } else if (userId) {
-          // Fetch direct messages for a specific user
-          response = await axios.get(`/api/directMessages/${userId}`);
-          if (response.data) {
-            const messages = response.data.map((msg: any) =>
-              convertMessageBody(msg)
-            );
-            setUserMessages(convertToUserMessages(messages));
-          }
+          setSelectedUserId(userId);
+          setSelectedUserName(userName);
+          setSelectedChannelId(null);
+
+          const response = await axios.get(`/api/directMessages/${userId}`);
+          const messages = response.data.map((msg: any) =>
+            convertMessageBody(msg)
+          );
+
+          const newMessages = convertToUserMessages(messages);
+          setUserMessages(newMessages);
         }
       } catch (error) {
         console.error("Error fetching messages:", error);
@@ -141,9 +149,10 @@ const MessageLog = ({
 
   const handleSendMessage = async (content: string): Promise<void> => {
     try {
-      let channelIdentifier = channelId;
-      if (!channelIdentifier && userId) {
-        channelIdentifier = [currentUserId, userId].sort().join("-");
+      let channelIdentifier = selectedChannelId;
+      if (!channelIdentifier && selectedUserId) {
+        // Construct channel identifier for direct messages
+        channelIdentifier = [currentUserId, selectedUserId].sort().join("-");
       }
 
       if (channelIdentifier && currentUserId) {
@@ -156,10 +165,28 @@ const MessageLog = ({
         };
 
         await axios.post(`/api/pusher`, {
-          channelName: uniqueChannelName,
+          channelName: channelIdentifier,
           eventName: "new-message",
           message: newMessage,
         });
+
+        // Optimistically update the UI
+        const existingUserMessages = userMessages.find((msg) => msg.userID === currentUserId);
+        const newMessages = existingUserMessages
+          ? [...existingUserMessages.messages, convertMessageBody(newMessage)]
+          : [convertMessageBody(newMessage)];
+
+        const updatedMessages = [
+          ...userMessages.filter((msg) => msg.userID !== currentUserId),
+          {
+            name: currentUserName,
+            img: currentUserImage,
+            userID: currentUserId,
+            messages: newMessages,
+          },
+        ];
+        setUserMessages(updatedMessages);
+        scrollToBottom();
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -227,19 +254,31 @@ const MessageLog = ({
     return convertedUserMessages;
   };
 
+  const validateAndFormatDate = (dateString: string | undefined): string => {
+    if (!dateString) {
+      console.error("Undefined dateString:", dateString);
+      return new Date().toISOString(); // Return current date as fallback
+    }
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.error("Invalid dateString:", dateString);
+      return new Date().toISOString(); // Return current date as fallback
+    }
+    return date.toISOString();
+  };
+
   const convertMessageBody = (message: any): Message => {
-    const date = new Date(message.createdAt);
-    const localTime = !isNaN(date.getTime())
-      ? date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })
-      : "Invalid Date";
+    const validDate = validateAndFormatDate(message.createdAt);
+    const date = new Date(validDate);
+    const localTime = date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
 
     return {
       id: message.id,
-      createdAt: message.createdAt,
+      createdAt: validDate,
       text: message.content,
       displayTime: localTime,
       userId: message.userId,
@@ -250,6 +289,10 @@ const MessageLog = ({
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid dateString:', dateString);  // Debug log
+      return "Invalid Date";
+    }
     const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
@@ -261,6 +304,10 @@ const MessageLog = ({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid dateString:', dateString);  // Debug log
+      return "Invalid Date";
+    }
     const options: Intl.DateTimeFormatOptions = {
       year: "numeric",
       month: "long",
