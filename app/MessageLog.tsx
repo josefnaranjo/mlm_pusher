@@ -23,9 +23,9 @@ interface NewMessage {
   content: string;
   channelId: string;
   userId: string;
-  userName: string; // Ensure this is not optional
-  userImage: string; // Ensure this is not optional
-  createdAt: string; // Ensure this is not optional
+  userName: string;
+  userImage: string;
+  createdAt: string;
 }
 
 interface UserMessage {
@@ -64,9 +64,30 @@ const MessageLog = ({
   const [selectedUserName, setSelectedUserName] = useState<string>(userName);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  usePusher(channelName, "new-message", (newMessage: NewMessage) => {
-    handleNewMessage(newMessage);
-  });
+  // Define the handleNewMessage function before using it in the hook
+  const handleNewMessage = (message: NewMessage) => {
+    setUserMessages((prevMessages) => {
+      const existingIds = new Set(
+        prevMessages.flatMap((userMessage) =>
+          userMessage.messages.map((msg) => msg.id)
+        )
+      );
+      const newMessage = convertMessageBody(message);
+      if (existingIds.has(newMessage.id)) {
+        return prevMessages; // Skip duplicates
+      }
+      const updatedMessages = convertToUserMessages([
+        ...prevMessages.flatMap((userMsg) => userMsg.messages),
+        newMessage,
+      ]);
+
+      return updatedMessages;
+    });
+    scrollToBottom(); // Ensure we scroll down for new messages
+  };
+
+  // Use Pusher hook
+  usePusher(channelName, "new-message", handleNewMessage);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -121,30 +142,6 @@ const MessageLog = ({
     fetchMessages();
   }, [channelId, userId, channelName, userName]);
 
-  const handleNewMessage = (message: NewMessage) => {
-    setUserMessages((prevMessages) => {
-      const existingIds = new Set(
-        prevMessages.flatMap((userMessage) =>
-          userMessage.messages.map((msg) => msg.id)
-        )
-      );
-      const newMessage = convertMessageBody(message);
-      if (existingIds.has(newMessage.id)) {
-        return prevMessages; // Skip duplicates
-      }
-      const updatedMessages = convertToUserMessages([
-        ...prevMessages.flatMap((userMsg) => userMsg.messages),
-        newMessage,
-      ]);
-
-      return updatedMessages;
-    });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [userMessages]);
-
   const handleSendMessage = async (content: string): Promise<void> => {
     try {
       let channelIdentifier = selectedChannelId;
@@ -172,7 +169,6 @@ const MessageLog = ({
 
         // Optimistically update the UI
         handleNewMessage(newMessage);
-        scrollToBottom();
       }
     } catch (error) {
       console.error("Error sending message:", error);

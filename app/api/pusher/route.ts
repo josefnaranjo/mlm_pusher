@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       },
     };
 
-    // Trigger Pusher event with the complete message including user data
+    console.log("Triggering Pusher event:", messageWithUser); // Debug log
     await pusher.trigger(channelName, eventName, messageWithUser);
 
     return NextResponse.json({ success: true, message: savedMessage });
