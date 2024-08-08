@@ -37,8 +37,8 @@ export default function usePusher(
     });
 
     return () => {
-      channel.unbind_all();
-      channel.unsubscribe();
+      channel.unbind(eventName); // Unbind specific event
+      pusher.unsubscribe(channelName); // Unsubscribe from the channel
     };
   }, [channelName, eventName, onNewMessage]);
 }
