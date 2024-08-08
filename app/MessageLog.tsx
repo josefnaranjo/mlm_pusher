@@ -16,15 +16,16 @@ interface Message {
   displayTime: string;
   userId: string;
   userName: string;
-  userImage: string;
+  userImage: string | null;
 }
 
 interface NewMessage {
   content: string;
   channelId: string;
   userId: string;
-  userName: string;
-  userImage: string;
+  userName: string; // Ensure this is not optional
+  userImage: string; // Ensure this is not optional
+  createdAt: string; // Ensure this is not optional
 }
 
 interface UserMessage {
@@ -54,19 +55,18 @@ const MessageLog = ({
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [currentUserName, setCurrentUserName] = useState<string>("Anonymous");
   const [currentUserImage, setCurrentUserImage] = useState<string>(avatar);
-
+  const [selectedChannelName, setSelectedChannelName] =
+    useState<string>(channelName);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
+    channelId
+  );
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(userId);
+  const [selectedUserName, setSelectedUserName] = useState<string>(userName);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Generate unique channel names for Pusher based on context
-  const uniqueChannelName = channelId
-  ? `channel-${channelId}`  // Server channel
-  : `direct-${[currentUserId, userId].sort().join("-")}`;  // Direct message channel
-
-
-  const { messages: pusherMessages } = usePusher(
-    uniqueChannelName,
-    "new-message"
-  );
+  usePusher(channelName, "new-message", (newMessage: NewMessage) => {
+    handleNewMessage(newMessage);
+  });
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -86,7 +86,6 @@ const MessageLog = ({
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        let response;
         if (channelId) {
           setSelectedChannelId(channelId);
           setSelectedChannelName(channelName);
@@ -118,30 +117,29 @@ const MessageLog = ({
         console.error("Error fetching messages:", error);
       }
     };
-  
+
     fetchMessages();
-  }, [channelId, userId]);
-  
+  }, [channelId, userId, channelName, userName]);
 
-  useEffect(() => {
-    if (pusherMessages.length) {
-      setUserMessages((prevMessages) => {
-        const existingIds = new Set(
-          prevMessages.flatMap((userMessage) =>
-            userMessage.messages.map((msg) => msg.id)
-          )
-        );
-        const newMessages = pusherMessages
-          .map((msg) => convertMessageBody(msg))
-          .filter((msg) => !existingIds.has(msg.id));
+  const handleNewMessage = (message: NewMessage) => {
+    setUserMessages((prevMessages) => {
+      const existingIds = new Set(
+        prevMessages.flatMap((userMessage) =>
+          userMessage.messages.map((msg) => msg.id)
+        )
+      );
+      const newMessage = convertMessageBody(message);
+      if (existingIds.has(newMessage.id)) {
+        return prevMessages; // Skip duplicates
+      }
+      const updatedMessages = convertToUserMessages([
+        ...prevMessages.flatMap((userMsg) => userMsg.messages),
+        newMessage,
+      ]);
 
-        return convertToUserMessages([
-          ...prevMessages.flatMap((userMsg) => userMsg.messages),
-          ...newMessages,
-        ]);
-      });
-    }
-  }, [pusherMessages]);
+      return updatedMessages;
+    });
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -161,9 +159,11 @@ const MessageLog = ({
           channelId: channelIdentifier,
           userId: currentUserId,
           userName: currentUserName,
-          userImage: currentUserImage || avatar,
+          userImage: currentUserImage, // Ensure current user's image is used
+          createdAt: new Date().toISOString(), // Set the current date and time here
         };
 
+        // Send the message to the backend, which will handle Pusher
         await axios.post(`/api/pusher`, {
           channelName: channelIdentifier,
           eventName: "new-message",
@@ -171,21 +171,7 @@ const MessageLog = ({
         });
 
         // Optimistically update the UI
-        const existingUserMessages = userMessages.find((msg) => msg.userID === currentUserId);
-        const newMessages = existingUserMessages
-          ? [...existingUserMessages.messages, convertMessageBody(newMessage)]
-          : [convertMessageBody(newMessage)];
-
-        const updatedMessages = [
-          ...userMessages.filter((msg) => msg.userID !== currentUserId),
-          {
-            name: currentUserName,
-            img: currentUserImage,
-            userID: currentUserId,
-            messages: newMessages,
-          },
-        ];
-        setUserMessages(updatedMessages);
+        handleNewMessage(newMessage);
         scrollToBottom();
       }
     } catch (error) {
@@ -226,6 +212,7 @@ const MessageLog = ({
       userID: "",
     };
 
+    // Sort messages in ascending order
     messages.sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -240,7 +227,10 @@ const MessageLog = ({
         }
         currentUserMessage = {
           name: message.userId === currentUserId ? "You" : message.userName,
-          img: message.userImage || avatar,
+          img:
+            message.userId === currentUserId
+              ? currentUserImage
+              : message.userImage || avatar,
           userID: message.userId,
           messages: [message],
         };
@@ -268,6 +258,8 @@ const MessageLog = ({
   };
 
   const convertMessageBody = (message: any): Message => {
+    console.log("Converting message:", message); // Log message data
+
     const validDate = validateAndFormatDate(message.createdAt);
     const date = new Date(validDate);
     const localTime = date.toLocaleTimeString([], {
@@ -277,7 +269,7 @@ const MessageLog = ({
     });
 
     return {
-      id: message.id,
+      id: message.id || message.userId + message.createdAt, // Ensure unique ID
       createdAt: validDate,
       text: message.content,
       displayTime: localTime,
@@ -287,25 +279,10 @@ const MessageLog = ({
     };
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      console.error('Invalid dateString:', dateString);  // Debug log
-      return "Invalid Date";
-    }
-    const options: Intl.DateTimeFormatOptions = {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "America/Los_Angeles",
-    };
-    return new Intl.DateTimeFormat("en-US", options).format(date);
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      console.error('Invalid dateString:', dateString);  // Debug log
+      console.error("Invalid dateString:", dateString); // Debug log
       return "Invalid Date";
     }
     const options: Intl.DateTimeFormatOptions = {
@@ -326,29 +303,40 @@ const MessageLog = ({
     const organizedMessages: (UserMessage | { date: string })[] = [];
     let lastDate: string | null = null;
 
-    userMessages.forEach((userMessage) => {
-      userMessage.messages.forEach((message) => {
-        const messageDate = formatDate(message.createdAt);
+    // Sort all messages by date
+    const allMessages = userMessages
+      .flatMap((userMessage) => userMessage.messages)
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
 
-        if (lastDate !== messageDate) {
-          organizedMessages.push({ date: messageDate });
-          lastDate = messageDate;
-        }
+    allMessages.forEach((message) => {
+      const messageDate = formatDate(message.createdAt);
 
-        const lastUserMessage = organizedMessages[organizedMessages.length - 1];
-        if (
-          lastUserMessage &&
-          "userID" in lastUserMessage &&
-          lastUserMessage.userID === userMessage.userID
-        ) {
-          (lastUserMessage as UserMessage).messages.push(message);
-        } else {
-          organizedMessages.push({
-            ...userMessage,
-            messages: [message],
-          });
-        }
-      });
+      if (lastDate !== messageDate) {
+        organizedMessages.push({ date: messageDate });
+        lastDate = messageDate;
+      }
+
+      const lastUserMessage = organizedMessages[organizedMessages.length - 1];
+      if (
+        lastUserMessage &&
+        "userID" in lastUserMessage &&
+        lastUserMessage.userID === message.userId
+      ) {
+        (lastUserMessage as UserMessage).messages.push(message);
+      } else {
+        organizedMessages.push({
+          name: message.userId === currentUserId ? "You" : message.userName,
+          img:
+            message.userId === currentUserId
+              ? currentUserImage
+              : message.userImage || avatar,
+          userID: message.userId,
+          messages: [message],
+        });
+      }
     });
 
     return organizedMessages;
@@ -358,17 +346,17 @@ const MessageLog = ({
 
   return (
     <>
-      {!channelId && !userId ? (
+      {!selectedChannelId && !selectedUserId ? (
         <DefaultDisplay />
       ) : (
         <>
           <MessageNav
             channelName={
-              channelId
-                ? channelName
-                : userName || "Direct Messages"
+              selectedChannelId
+                ? selectedChannelName
+                : selectedUserName || "Direct Messages"
             }
-            channelId={channelId}
+            channelId={selectedChannelId}
           />
           <div className="flex flex-col justify-between h-full">
             <div className="overflow-auto flex-grow h-[500px] max-h-screen">

@@ -1,1 +1,17 @@
-{}
+{
+  "files.exclude": {
+    "**/node_modules": true, // Hide node_modules from the explorer
+    "**/.next": true, // Hide Next.js build output
+    "**/.git": true, // Hide .git directory
+    "**/dist": true // Hide dist folder if used
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/.next": true
+  },
+  "editor.formatOnSave": true, // Enable format on save
+  "eslint.enable": true, // Enable ESLint
+  "eslint.packageManager": "npm", // Set package manager for ESLint
+  "prettier.requireConfig": true // Use prettier only if a config file is present
+}

@@ -5,9 +5,16 @@ interface NewMessage {
   content: string;
   channelId: string;
   userId: string;
+  userName: string; // Ensure this is not optional
+  userImage: string; // Ensure this is not optional
+  createdAt: string; // Ensure this is not optional
 }
 
-export default function usePusher(channelName: string, eventName: string) {
+export default function usePusher(
+  channelName: string,
+  eventName: string,
+  onNewMessage: (message: NewMessage) => void
+) {
   const [messages, setMessages] = useState<NewMessage[]>([]);
 
   useEffect(() => {
@@ -28,13 +35,14 @@ export default function usePusher(channelName: string, eventName: string) {
 
     channel.bind(eventName, (data: NewMessage) => {
       setMessages((prevMessages) => [...prevMessages, data]);
+      onNewMessage(data); // Call the callback with new message
     });
 
     return () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channelName, eventName]);
+  }, [channelName, eventName, onNewMessage]);
 
   const sendMessage = (message: NewMessage) => {
     fetch("/api/pusher", {
