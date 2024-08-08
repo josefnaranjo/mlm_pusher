@@ -44,18 +44,18 @@ export async function POST(req: NextRequest) {
   try {
     const user = await currentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { pathname } = new URL(req.url);
-    const userId = pathname.split('/').pop();
+    const userId = pathname.split("/").pop();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
     const currentUserId = user.id;
-    const channelIdentifier = [currentUserId, userId].sort().join('-');
+    const channelIdentifier = [currentUserId, userId].sort().join("-");
 
     const { content } = await req.json();
 
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         data: {
           id: channelIdentifier,
           name: `Direct Message between ${currentUserId} and ${userId}`,
-          type: 'TEXT', // Assuming text type for direct messages
+          type: "TEXT", // Assuming text type for direct messages
           userId: currentUserId,
           serverId: directMessageServer.id,
         },
@@ -99,11 +99,19 @@ export async function POST(req: NextRequest) {
         userId: currentUserId,
         channelId: channel.id,
       },
+      include: {
+        user: {
+          select: { name: true, image: true },
+        },
+      },
     });
 
     return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {
     console.error("Error creating direct message:", error);
-    return NextResponse.json({ error: 'Failed to create message' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create message" },
+      { status: 500 }
+    );
   }
 }
