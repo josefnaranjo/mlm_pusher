@@ -54,16 +54,19 @@ const MessageLog = ({
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [currentUserName, setCurrentUserName] = useState<string>("Anonymous");
   const [currentUserImage, setCurrentUserImage] = useState<string>(avatar);
-  const [selectedChannelName, setSelectedChannelName] =
-    useState<string>(channelName);
-  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
-    channelId
-  );
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(userId);
-  const [selectedUserName, setSelectedUserName] = useState<string>(userName);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages: pusherMessages } = usePusher(channelName, "new-message");
+  // Generate unique channel names for Pusher based on context
+  const uniqueChannelName = channelId
+  ? `channel-${channelId}`  // Server channel
+  : `direct-${[currentUserId, userId].sort().join("-")}`;  // Direct message channel
+
+
+  const { messages: pusherMessages } = usePusher(
+    uniqueChannelName,
+    "new-message"
+  );
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -83,44 +86,34 @@ const MessageLog = ({
   useEffect(() => {
     const fetchMessages = async () => {
       try {
+        let response;
         if (channelId) {
-          setSelectedChannelId(channelId);
-          setSelectedChannelName(channelName);
-          setSelectedUserId(null);
-
-          const response = await axios.get(
-            `/api/directMessages?id=${channelId}`
-          );
-          const channelMessages = response.data.map((msg: any) =>
-            convertMessageBody(msg)
-          );
-
-          const newMessages = convertToUserMessages(channelMessages);
-          if (JSON.stringify(newMessages) !== JSON.stringify(userMessages)) {
-            setUserMessages(newMessages);
+          // Fetch messages for a specific channel
+          response = await axios.get(`/api/channels/${channelId}`);
+          if (response.data && response.data.messages) {
+            const messages = response.data.messages.map((msg: any) =>
+              convertMessageBody(msg)
+            );
+            setUserMessages(convertToUserMessages(messages));
           }
         } else if (userId) {
-          setSelectedUserId(userId);
-          setSelectedUserName(userName);
-          setSelectedChannelId(null);
-
-          const response = await axios.get(`/api/directMessages?id=${userId}`);
-          const messages = response.data.map((msg: any) =>
-            convertMessageBody(msg)
-          );
-
-          const newMessages = convertToUserMessages(messages);
-          if (JSON.stringify(newMessages) !== JSON.stringify(userMessages)) {
-            setUserMessages(newMessages);
+          // Fetch direct messages for a specific user
+          response = await axios.get(`/api/directMessages/${userId}`);
+          if (response.data) {
+            const messages = response.data.map((msg: any) =>
+              convertMessageBody(msg)
+            );
+            setUserMessages(convertToUserMessages(messages));
           }
         }
       } catch (error) {
         console.error("Error fetching messages:", error);
       }
     };
-
+  
     fetchMessages();
-  }, [channelId, userId, channelName, userName]);
+  }, [channelId, userId]);
+  
 
   useEffect(() => {
     if (pusherMessages.length) {
@@ -134,12 +127,10 @@ const MessageLog = ({
           .map((msg) => convertMessageBody(msg))
           .filter((msg) => !existingIds.has(msg.id));
 
-        const updatedMessages = convertToUserMessages([
+        return convertToUserMessages([
           ...prevMessages.flatMap((userMsg) => userMsg.messages),
           ...newMessages,
         ]);
-
-        return updatedMessages;
       });
     }
   }, [pusherMessages]);
@@ -150,18 +141,22 @@ const MessageLog = ({
 
   const handleSendMessage = async (content: string): Promise<void> => {
     try {
-      if (selectedChannelId && currentUserId) {
+      let channelIdentifier = channelId;
+      if (!channelIdentifier && userId) {
+        channelIdentifier = [currentUserId, userId].sort().join("-");
+      }
+
+      if (channelIdentifier && currentUserId) {
         const newMessage: NewMessage = {
           content,
-          channelId: selectedChannelId,
+          channelId: channelIdentifier,
           userId: currentUserId,
           userName: currentUserName,
           userImage: currentUserImage || avatar,
         };
 
-        // Send the message to the backend, which will handle Pusher
         await axios.post(`/api/pusher`, {
-          channelName,
+          channelName: uniqueChannelName,
           eventName: "new-message",
           message: newMessage,
         });
@@ -316,17 +311,17 @@ const MessageLog = ({
 
   return (
     <>
-      {!selectedChannelId && !selectedUserId ? (
+      {!channelId && !userId ? (
         <DefaultDisplay />
       ) : (
         <>
           <MessageNav
             channelName={
-              selectedChannelId
-                ? selectedChannelName
-                : selectedUserName || "Direct Messages"
+              channelId
+                ? channelName
+                : userName || "Direct Messages"
             }
-            channelId={selectedChannelId}
+            channelId={channelId}
           />
           <div className="flex flex-col justify-between h-full">
             <div className="overflow-auto flex-grow h-[500px] max-h-screen">

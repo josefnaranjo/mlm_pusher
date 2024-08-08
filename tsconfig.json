@@ -30,6 +30,6 @@
     "public/Icons/Icons.js",
     "lib/icons.js",
     "app/api/servers/[serverId]"
-  ],
+, "app/api/directMessages/schema"  ],
   "exclude": ["node_modules"]
 }
