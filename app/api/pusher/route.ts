@@ -32,7 +32,6 @@ export async function POST(req: Request) {
       content: savedMessage.content,
       userId: savedMessage.userId,
       createdAt: savedMessage.createdAt,
-      updatedAt: savedMessage.updatedAt,
       user: {
         name: savedMessage.user.name,
         image: savedMessage.user.image,
